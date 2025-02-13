@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import axios from 'axios'
 import useSocket from "../hooks/SocketHook";
 import GameBoard from "../components/GameBoard";
-import { Chess, Color, PieceSymbol, Square } from "chess.js";
+import {  Color, PieceSymbol, Square } from "chess.js";
 
 //{"games":["0.646021158915842"]}
 export const SPECTATE = "spectate";
@@ -13,8 +13,9 @@ export default function Spectate() {
     const socket = useSocket()
     const [games, setGames] = useState<string[] | null>();
     const [isStarted, setStarted] = useState<boolean>(false);
-
-    // const [game, setGame] = useState<Chess | null>()
+    const [player1,setPlayer1]=useState<string|null>(null)
+    const [player2,setPlayer2]=useState<string|null>(null)
+    const [winner,setWinnner]=useState<string|null>(null);
     const [board, setBoard] = useState<(({
         square: Square;
         type: PieceSymbol;
@@ -30,17 +31,20 @@ export default function Spectate() {
             const message = JSON.parse(event.data);
             if (message.type === SPECTATE) {
                 setBoard(message.game)
+                setPlayer1(message.player1)
+                setPlayer2(message.player2)
                 setStarted(true)
             }
             if (message.type === SPECTATE_UPDATE) {
                 try {
-                    console.log(JSON.stringify(message.payload));
+                    
                     setBoard(message.payload);
                 }
                 catch (e) {
                     console.log(e);
                 }
             }
+            
         }
     }, [socket])
 
@@ -74,8 +78,14 @@ export default function Spectate() {
                     </div>
                 ))}
             </div>
-        </div> : <div>
+        </div> : <div className=" pt-24 grid grid-cols-2">
             <GameBoard board={board!} game={null} myColor={"spectator"} setBoard={null} socket={socket!} ></GameBoard>
+            {!winner ?<div className=" font-black text-2xl flex flex-col justify-between">
+                <div>{player2}</div>
+                <div>{player1}</div>
+            </div> : <div>
+                {`${winner} wins the match`}
+            </div> }
         </div>}
     </div>
 }

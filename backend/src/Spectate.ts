@@ -37,7 +37,6 @@ export class SpectateGame {
   }
 
   updateHandler(gameId: string, message: string) {
-    console.log(`message received for gameId ${gameId} is ${message} `);
     const parsedBoard = JSON.parse(message); 
     this.subscriptions.get(gameId)?.forEach(ws => {
       ws.send(JSON.stringify({

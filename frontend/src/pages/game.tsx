@@ -75,12 +75,13 @@ export default function Landing() {
                 }} className="bg-green-600 mt-5 p-3 max-w-52 hover:bg-green-900 text-white text-3xl font-bold  rounded-sm">Find next match</button>
             </div> : <>
                 {(!isStarted && !finding) && <div className="flex flex-col">
-                    {/* <input onChange={(e)=>{
+                    <input onChange={(e)=>{
                         setName(e.target.value);
-                    }} className="border border-black max-w-52" type="text" placeholder="name" /> */}
+                    }} className="border border-black max-w-52" type="text" placeholder="name" />
                     <button onClick={() => {
                         socket.send(JSON.stringify({
-                            type: INIT_GAME
+                            type: INIT_GAME,
+                            name
                         }))
                         setFinding(true);
                     }} className="bg-green-600 mt-5 p-3 max-w-52 hover:bg-green-900 text-white text-3xl font-bold  rounded-sm">Enter</button>

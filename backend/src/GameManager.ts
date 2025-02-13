@@ -7,7 +7,7 @@ export class GameManager {
   private static instance:GameManager;
 
   private games: Game[];
-  private pendingUser: WebSocket | null;
+  private pendingUser: {socket:WebSocket,name:string} | null;
   private allUsers: Set<WebSocket>;
 
   static getInstance(){
@@ -49,12 +49,12 @@ export class GameManager {
 
         if (message.type === INIT_GAME) {
           if (this.pendingUser) {
-            const game = new Game(this.pendingUser, socket);
+            const game = new Game(this.pendingUser.socket, socket,this.pendingUser.name,message.name);
             this.games.push(game);
             this.pendingUser = null;
           }
           else{
-            this.pendingUser = socket;
+            this.pendingUser = {socket,name:message.name};
           }
         }
 
@@ -76,7 +76,9 @@ export class GameManager {
           }
           socket.send(JSON.stringify({
             type:SPECTATE,
-            game:game?.gameBoard().board()
+            game:game?.gameBoard().board(),
+            player1:game?.player1Name,
+            player2:game?.player2Name
           }))
         }
       });
@@ -88,5 +90,10 @@ export class GameManager {
   getAllGames() {
     return this.games.map((game) => game.gameId);
   }
+
+  removeGame(gameId: string) {
+    this.games = this.games.filter(game => game.gameId !== gameId);
+}
+
   
 }
