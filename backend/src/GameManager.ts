@@ -1,13 +1,24 @@
 import { WebSocket } from "ws";
-import { INIT_GAME, MOVE } from "./Messages";
+import { INIT_GAME, MOVE, SPECTATE } from "./Messages";
 import { Game } from "./Game";
+import { SpectateGame } from "./Spectate";
 
 export class GameManager {
+  private static instance:GameManager;
+
   private games: Game[];
   private pendingUser: WebSocket | null;
   private allUsers: Set<WebSocket>;
 
-  constructor() {
+  static getInstance(){
+    if(!GameManager.instance){
+      GameManager.instance=new GameManager();
+    }
+
+    return GameManager.instance;
+  }
+
+  private constructor() {
     this.games = [];
     this.pendingUser = null;
     this.allUsers = new Set();
@@ -56,9 +67,26 @@ export class GameManager {
           }
         }
 
+        if(message.type===SPECTATE){
+          const game=this.games.find((game)=>{
+            return game.gameId===message.gameId;
+          })
+          if(game){
+            SpectateGame.getInstance().subscribe(message.gameId,socket);
+          }
+          socket.send(JSON.stringify({
+            type:SPECTATE,
+            game:game?.gameBoard().board()
+          }))
+        }
       });
     } catch (e) {
       console.log(e);
     }
   }
+
+  getAllGames() {
+    return this.games.map((game) => game.gameId);
+  }
+  
 }

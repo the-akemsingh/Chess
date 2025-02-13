@@ -3,19 +3,19 @@ import { useState } from "react";
 import { MOVE } from "../pages/game";
 
 export default function GameBoard({ game, board, setBoard, socket, myColor }: {
-    game: Chess,
+    game: Chess | null,
     board: ({
         square: Square;
         type: PieceSymbol;
         color: Color;
     } | null)[][],
-    setBoard: (value: React.SetStateAction<({
+    setBoard: ((value: React.SetStateAction<({
         square: Square;
         type: PieceSymbol;
         color: Color;
-    } | null)[][]>) => void,
+    } | null)[][]>) => void ) | null,
     socket: WebSocket,
-    myColor: string | null
+    myColor: "black" | "white" | "spectator" | null
 }) {
 
     const [from, setFrom] = useState<Square | null>(null);
@@ -24,11 +24,14 @@ export default function GameBoard({ game, board, setBoard, socket, myColor }: {
         <div className="ml-32">
             <div className="grid grid-cols-8 gap-0" style={{ width: 520 }} >
 
-                {board.map((row, i) => row.map((box, j) => {
+                {board!.map((row, i) => row.map((box, j) => {
                     const squareRepresentation = String.fromCharCode(97 + (j % 8)) + "" + (8 - i) as Square;
                     const isSelected = from === squareRepresentation;
                     return <div
                         onClick={() => {
+                            if(myColor==="spectator"){
+                                return;
+                            }
                             if (!from) {
                                 if ((box?.color === 'b' && myColor == "white") || (box?.color === 'w' && myColor == "black")) {
                                     alert("Invalid move");
@@ -45,15 +48,11 @@ export default function GameBoard({ game, board, setBoard, socket, myColor }: {
                                 }))
 
                                 setFrom(null)
-                                game.move({
+                                game!.move({
                                     from,
                                     to: squareRepresentation
                                 });
-                                setBoard(game.board());
-                                // console.log({
-                                //     from,
-                                //     to: squareRepresentation
-                                // })
+                                setBoard!(game!.board());
                             }
                         }}
 

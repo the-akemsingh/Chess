@@ -1,6 +1,7 @@
 import {  createBrowserRouter, RouterProvider } from "react-router-dom";
 import Game from "./pages/game";
 import Landing from "./pages/landing";
+import Spectate from "./pages/spectate";
 
 function App() {
 
@@ -12,6 +13,10 @@ function App() {
     {
       path:"/game",
       element:<Game></Game>
+    },
+    {
+      path:"/spectate",
+      element:<Spectate></Spectate>
     }
   ])
   

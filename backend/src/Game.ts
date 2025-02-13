@@ -1,23 +1,32 @@
 import { Chess } from "chess.js";
 import { WebSocket } from "ws";
 import { GAME_OVER, INIT_GAME, MOVE } from "./Messages";
+import { createClient, RedisClientType } from "redis";
 
 export class Game {
+  private static redisClient:RedisClientType;
+
   public player1: WebSocket;
   public player2: WebSocket;
   private board: Chess;
   private movesCount: number;
+  public gameId: string;
 
   constructor(player1: WebSocket, player2: WebSocket) {
     this.player1 = player1;
     this.player2 = player2;
     this.board = new Chess();
+    this.gameId = Math.random().toString();
+    
+    Game.redisClient=createClient();
+    Game.redisClient.connect();
 
     this.player1.send(
       JSON.stringify({
         type: INIT_GAME,
         payload: {
           color: "white",
+          id:this.gameId
         },
       })
     );
@@ -26,6 +35,7 @@ export class Game {
         type: INIT_GAME,
         payload: {
           color: "black",
+          id:this.gameId
         },
       })
     );
@@ -58,6 +68,9 @@ export class Game {
 
       this.movesCount++;
 
+      
+      Game.redisClient.publish(this.gameId,JSON.stringify(this.board.board()));
+
       //after the updation, checking if its a CHECKMATE and notifying the users
       if (this.board.isGameOver()) {
         const winner = this.board.turn() === "w" ? "black" : "white";
@@ -65,7 +78,7 @@ export class Game {
           type: GAME_OVER,
           payload: {
             winner,
-            move
+            move,
           },
         });
         this.player2.send(gameOverMessage);
@@ -87,10 +100,12 @@ export class Game {
       } else {
         this.player2.send(moveMessage);
       }
-      
     } catch (e) {
       console.log(e);
       return;
     }
+  }
+  gameBoard(){
+    return this.board;
   }
 }

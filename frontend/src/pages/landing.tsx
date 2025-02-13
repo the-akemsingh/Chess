@@ -12,6 +12,11 @@ export default function Landing(){
             <button onClick={()=>{
                 navigate("/game");
             }} className="bg-green-600 mt-5 p-3 max-w-52 hover:bg-green-900 text-white text-3xl font-bold  rounded-sm">Start Game</button>
+
+            <div className="text-2xl font-bold mt-10">Watch others players</div>
+            <button onClick={()=>{
+                navigate("/spectate");
+            }} className="bg-green-600 mt-4 p-1 max-w-28 hover:bg-green-900 text-white text-xl font-bold  rounded-sm">Spectate</button>
             </div>
         </div>
     </div>

@@ -1,8 +1,11 @@
 import { WebSocketServer } from "ws";
 import { GameManager } from "./GameManager";
+import express from 'express'
+import { Request, Response } from "express";
+import cors from 'cors'
 
 const wss = new WebSocketServer({ port: 8080 });
-const gameManager = new GameManager();
+const gameManager = GameManager.getInstance();
 
 wss.on("connection", (ws) => {
   console.log("New client connected");
@@ -27,3 +30,19 @@ wss.on("connection", (ws) => {
 });
 
 console.log("WebSocket server is running on ws://localhost:8080");
+
+
+const app=express();
+app.use(cors())
+app.use(express.json());
+app.get("/all-games",(req:Request,res:Response)=>{
+  try{
+    const games=GameManager.getInstance().getAllGames();
+    res.status(201).send({games});
+  }catch(e){
+    console.log(e);
+  }
+})
+app.listen(3000,()=>{
+  console.log("server listening on port 3000");
+})

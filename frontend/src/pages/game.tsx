@@ -15,6 +15,8 @@ export default function Landing() {
     const [myColor, setColor] = useState<"black" | "white" | null>(null);
     const [winner, setWinner] = useState<"black" | "white" | null>(null)
     const [finding, setFinding] = useState<boolean>(false);
+    const [gameId, setGameId] = useState<string | null>(null);
+    const [name,setName]=useState<string | null>(null);
 
 
     const socket = useSocket();
@@ -33,6 +35,7 @@ export default function Landing() {
                     // console.log(message)
                     setColor(message.payload?.color)
                     setStarted(true)
+                    setGameId(message.payload.id);
                     break;
                 case MOVE:
                     const move = message.move
@@ -72,6 +75,9 @@ export default function Landing() {
                 }} className="bg-green-600 mt-5 p-3 max-w-52 hover:bg-green-900 text-white text-3xl font-bold  rounded-sm">Find next match</button>
             </div> : <>
                 {(!isStarted && !finding) && <div className="flex flex-col">
+                    {/* <input onChange={(e)=>{
+                        setName(e.target.value);
+                    }} className="border border-black max-w-52" type="text" placeholder="name" /> */}
                     <button onClick={() => {
                         socket.send(JSON.stringify({
                             type: INIT_GAME
@@ -81,7 +87,10 @@ export default function Landing() {
                 </div>
                 }
                 {isStarted && !finding && <div className="text-black text-3xl font-bold font-mono ">
-                    {`Yours is ${myColor}`}
+                    {`Yours is ${myColor}`} <br />
+                    <div>
+                        GameId:{`${gameId}`}
+                    </div>
                 </div>}
                 {finding && <div>
                     Finding opponent
