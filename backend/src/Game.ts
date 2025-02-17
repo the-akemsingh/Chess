@@ -78,7 +78,6 @@ export class Game {
 
       //after the updation, checking if its a CHECKMATE and notifying the users
       if (this.board.isGameOver()) {
-        console.log("inside")
         const winner = this.board.turn() === "w" ? "black" : "white";
         const gameOverMessage = JSON.stringify({
           type: GAME_OVER,
@@ -87,11 +86,9 @@ export class Game {
             move,
           },
         });
-        console.log("sending")
 
         this.player2.send(gameOverMessage);
         this.player1.send(gameOverMessage);
-        console.log("sent")
 
         //  Remove the game from GameManager after completion
         GameManager.getInstance().removeGame(this.gameId);

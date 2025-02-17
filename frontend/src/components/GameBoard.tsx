@@ -1,72 +1,103 @@
-import { Chess, Color, PieceSymbol, Square } from "chess.js"
-import { useState } from "react";
+import { Chess, Color, PieceSymbol, Square } from "chess.js";
+import { useEffect, useState } from "react";
 import { MOVE } from "../pages/game";
+import moveSound from '/move-self.mp3';
 
-export default function GameBoard({ game, board, setBoard, socket, myColor }: {
-    game: Chess | null,
-    board: ({
-        square: Square;
-        type: PieceSymbol;
-        color: Color;
-    } | null)[][],
-    setBoard: ((value: React.SetStateAction<({
-        square: Square;
-        type: PieceSymbol;
-        color: Color;
-    } | null)[][]>) => void ) | null,
-    socket: WebSocket,
-    myColor: "black" | "white" | "spectator" | null
+export default function ChessBoard({
+  game,
+  board,
+  setBoard,
+  socket,
+  myColor,
+}: {
+  game: Chess | null;
+  board: ({
+    square: Square;
+    type: PieceSymbol;
+    color: Color;
+  } | null)[][];
+  setBoard: ((value: React.SetStateAction<({
+    square: Square;
+    type: PieceSymbol;
+    color: Color;
+  } | null)[][]>) => void) | null;
+  socket: WebSocket;
+  myColor: "black" | "white" | "spectator" | null;
 }) {
+  const [from, setFrom] = useState<Square | null>(null);
+  const [moveCount, setMoveCount] = useState<number>(0);
 
-    const [from, setFrom] = useState<Square | null>(null);
+  function playSound() {
+    new Audio(moveSound).play();
+  }
 
-    return <div>
-        <div className="ml-32">
-            <div className="grid grid-cols-8 gap-0" style={{ width: 520 }} >
+  useEffect(() => {
+    if (moveCount !== 0) {
+      playSound();
+    }
+  }, [moveCount]);
 
-                {board!.map((row, i) => row.map((box, j) => {
-                    const squareRepresentation = String.fromCharCode(97 + (j % 8)) + "" + (8 - i) as Square;
-                    const isSelected = from === squareRepresentation;
-                    return <div
-                        onClick={() => {
-                            if(myColor==="spectator"){
-                                return;
-                            }
-                            if (!from) {
-                                if ((box?.color === 'b' && myColor == "white") || (box?.color === 'w' && myColor == "black")) {
-                                    alert("Invalid move");
-                                    return
-                                }
-                                setFrom(squareRepresentation);
-                            } else {
-                                socket.send(JSON.stringify({
-                                    type: MOVE,
-                                    move: {
-                                        from,
-                                        to: squareRepresentation
-                                    }
-                                }))
+  const isFlipped = myColor === "black";
 
-                                setFrom(null)
-                                game!.move({
-                                    from,
-                                    to: squareRepresentation
-                                });
-                                setBoard!(game!.board());
-                            }
-                        }}
+  return (
+    <div className="flex justify-center items-center">
+      <div className="grid grid-cols-8 gap-0 border-2 border-gray-500" style={{ width: 520 }}>
+        {(isFlipped ? [...board].reverse() : board).map((row, i) =>
+          (isFlipped ? [...row].reverse() : row).map((box, j) => {
+            const col = isFlipped ? 7 - j : j;
+            const rowIdx = isFlipped ? i + 1 : 8 - i;
+            const squareRepresentation = (String.fromCharCode(97 + col) + rowIdx) as Square;
+            const isSelected = from === squareRepresentation;
 
-                        key={j}
-                        style={{ height: 65, backgroundColor: ` ${(i + j) % 2 === 0 ? `#779756` : '#b3bbc7'} ` }}
-                        className={`flex  items-center justify-center text-2xl  font-bold hover:scale-x-105 ${isSelected ? ` border-b-neutral-80 border-2 scale-105 ease-in ` : ``}   `}
-                    >
-                        <img style={{ height: 30 }} src={box?.color === 'b' ? `/${box.type.toLowerCase()}.png` : `/${box?.type.toUpperCase()} copy.png`} alt="" />
+            return (
+              <div
+                onClick={() => {
+                  if (myColor === "spectator") return;
 
-                    </div>
-                }
-                ))}
-            </div>
-        </div>
+                  if (!from) {
+                    if ((box?.color === "b" && myColor === "white") || (box?.color === "w" && myColor === "black")) {
+                      alert("Invalid move");
+                      return;
+                    }
+                    setFrom(squareRepresentation);
+                  } else {
+                    socket.send(
+                      JSON.stringify({
+                        type: MOVE,
+                        move: {
+                          from,
+                          to: squareRepresentation,
+                        },
+                      })
+                    );
 
+                    game!.move({ from, to: squareRepresentation });
+                    setBoard!(game!.board());
+                    setMoveCount((prev) => prev + 1);
+                    setFrom(null);
+                  }
+                }}
+                key={j}
+                style={{
+                  height: 65,
+                  backgroundColor: (i + j) % 2 === 0 ? `#779756` : '#b3bbc7',
+                }}
+                className={`flex items-center justify-center text-2xl font-bold hover:scale-105 transition-transform ${
+                  isSelected ? "border-2 border-neutral-800 scale-105" : ""
+                }`}
+              >
+                {box && (
+                  <img
+                    style={{ height: 40 }}
+                    src={box.color === "b" ? `/${box.type.toLowerCase()}.png` : `/${box?.type.toUpperCase()} copy.png`}
+                    alt=""
+                  />
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
+  );
 }
