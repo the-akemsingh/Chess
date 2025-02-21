@@ -2,6 +2,7 @@ import {  createBrowserRouter, RouterProvider } from "react-router-dom";
 import Game from "./pages/game";
 import Landing from "./pages/landing";
 import Spectate from "./pages/spectate";
+import SignInPage from "./pages/signIn";
 
 function App() {
 
@@ -9,6 +10,10 @@ function App() {
     {
       path:"/",
       element:<Landing></Landing>
+    },
+    {
+      path:"/signin",
+      element:<SignInPage></SignInPage>
     },
     {
       path:"/game",

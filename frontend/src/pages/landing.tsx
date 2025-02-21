@@ -6,75 +6,33 @@ export default function Landing() {
 
   return (
     <motion.div
-      className="grid-cols-2 min-h-screen min-w-full flex bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 text-white"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.8}}
+      transition={{ duration: 0.8 }}
     >
-      {/* Chessboard Image Section */}
-      <motion.div
-        className="col-span-1 w-full flex justify-center items-center bg-gray-950"
-        initial={{ x: -100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-      >
-        <img
-          height={500}
-          width={500}
-          className="m-auto drop-shadow-lg"
-          src="/chess-board.png"
-          alt="board"
-        />
-      </motion.div>
 
-      {/* Text and Buttons Section */}
-      <motion.div
-        className="w-full col-span-1 bg-gray-800 bg-opacity-90 flex flex-col items-center justify-center p-10 shadow-lg"
-        initial={{ x: 100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-      >
-        <motion.div
-          className="text-4xl font-bold text-center"
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6 }}
-        >
-          Play Chess Online on the #1 Site!
-        </motion.div>
+      <div className="flex justify-center min-w-full">
+        <div className="flex min-w-screen  flex-col">
+          <div className="flex font-bold ml-auto mr-auto flex-col gap-3 md:mt-40 ">
+            <div className=" flex gap-2 text-8xl ">
+              <span className="playwrite-it-moderna-one">CHESS</span> <img src="/knight.png" alt="knight" width={90} height={20} />
+            </div>
+            <div className="ml-auto mr-auto p-2 text-amber-500 playwrite-it-moderna-one">
+              think, dominate and conquer
+            </div>
+            <button onClick={() => navigate("/game")} className="px-4 playwrite-it-moderna-one py-2 rounded-md border border-black bg-white text-black text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200">
+              Play
+            </button>
+            <button onClick={() => navigate("/spectate")} className="px-4 playwrite-it-moderna-one py-2 rounded-md border border-black bg-white text-black text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200">
+              Spectate
+            </button>
+          </div>
+          <div className="ml-auto -mt-24 -z-10 mr-auto">
+            <img src="/chess-board.png" className="blur-sm" width={800} height={500} alt="chess-board" />
+          </div>
+        </div>
+      </div>
 
-        {/* Start Game Button */}
-        <motion.button
-          onClick={() => navigate("/game")}
-          className="bg-green-600 mt-5 p-3 max-w-52 hover:bg-green-900 text-white text-3xl font-bold rounded-lg shadow-md"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          transition={{ type: "spring", stiffness: 300 }}
-        >
-          Start Game
-        </motion.button>
-
-        {/* Spectate Section */}
-        <motion.div
-          className="text-2xl font-bold mt-10 text-center"
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          Watch other players
-        </motion.div>
-
-        {/* Spectate Button */}
-        <motion.button
-          onClick={() => navigate("/spectate")}
-          className="bg-green-600 mt-4 p-2 max-w-28 hover:bg-green-900 text-white text-xl font-bold rounded-lg shadow-md"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          transition={{ type: "spring", stiffness: 300 }}
-        >
-          Spectate
-        </motion.button>
-      </motion.div>
     </motion.div>
   );
 }

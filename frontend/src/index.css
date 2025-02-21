@@ -1,1 +1,18 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playwrite+IT+Moderna:wght@100..400&display=swap');
+
 @import "tailwindcss";
+
+.bebas-neue-regular {
+  font-family: "Bebas Neue", serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+
+.playwrite-it-moderna-one {
+  font-family: "Playwrite IT Moderna", serif;
+  font-optical-sizing: auto;
+  font-weight: 300;
+  font-style: normal;
+}
