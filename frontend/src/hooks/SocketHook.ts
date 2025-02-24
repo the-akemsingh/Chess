@@ -1,8 +1,7 @@
 import {  useEffect, useState } from "react"
-import dotenv from "dotenv"
-dotenv.config()
 
-const WS_URL = process.env.VITE_WS_URL as string;
+
+const WS_URL = import.meta.env.VITE_WS_URL as string;
 
 const useSocket = () => {
     const [socket, setSocket] = useState<WebSocket | null>(null);
