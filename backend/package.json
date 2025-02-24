@@ -21,9 +21,10 @@
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "redis": "^4.7.0",
-    "tsc": "^2.0.4",
-    "typescript": "^5.7.3",
     "ws": "^8.18.0",
     "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
   }
 }
