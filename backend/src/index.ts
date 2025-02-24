@@ -4,7 +4,7 @@ import express from 'express'
 import { Request, Response } from "express";
 import cors from 'cors'
 
-const wss = new WebSocketServer({ port: 8080 });
+const wss = new WebSocketServer();
 const gameManager = GameManager.getInstance();
 
 wss.on("connection", (ws) => {
