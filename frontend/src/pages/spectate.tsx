@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import useSocket from "../hooks/SocketHook";
 import GameBoard from "../components/GameBoard";
-import { Chess, Color, PieceSymbol, Square } from "chess.js";
+import { Chess } from "chess.js";
 import { motion } from "framer-motion";
 import moveSound from '/capture.mp3';
 
@@ -17,6 +17,7 @@ export default function Spectate() {
   const [player1, setPlayer1] = useState<string | null>(null);
   const [player2, setPlayer2] = useState<string | null>(null);
   const [winner, setWinner] = useState<string | null>(null);
+  //@ts-ignore
   const [game, setGame] = useState(new Chess());
   const [board, setBoard] = useState(game.board());
 

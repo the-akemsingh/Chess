@@ -16,6 +16,7 @@ export const GAME_ENDED = "game_ended";
 
 
 export default function Landing() {
+    //@ts-ignore
     const [game, setGame] = useState(new Chess());
     const [board, setBoard] = useState(game.board());
     const [isStarted, setStarted] = useState<boolean>(false);
