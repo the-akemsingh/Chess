@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build":"tsc -b",
+    "build": "tsc -b",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsc -b && node dist/index.js"
   },
@@ -21,6 +21,7 @@
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "redis": "^4.7.0",
+    "tsc": "^2.0.4",
     "ws": "^8.18.0",
     "zod": "^3.24.1"
   }
