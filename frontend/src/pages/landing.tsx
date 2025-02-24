@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BookOpen, Youtube, Quote, History } from 'lucide-react';
-import { WobbleCard } from '../components/wobble-card';
 
 const ChessQuotes = [
   {
@@ -44,7 +43,7 @@ export default function Landing() {
   const navigate = useNavigate();
   const [currentQuote, setCurrentQuote] = React.useState(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const interval = setInterval(() => {
       setCurrentQuote((prev) => (prev + 1) % ChessQuotes.length);
     }, 5000);
