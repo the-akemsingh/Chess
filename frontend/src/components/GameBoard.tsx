@@ -1,7 +1,7 @@
 import { Chess, Color, PieceSymbol, Square } from "chess.js";
 import { useEffect, useState } from "react";
 import { MOVE } from "../pages/game";
-import moveSound from '/move-self.mp3';
+import moveSound from '/capture.mp3';
 
 export default function ChessBoard({
   game,
@@ -9,6 +9,8 @@ export default function ChessBoard({
   setBoard,
   socket,
   myColor,
+  moveCount,
+  setMoveCount
 }: {
   game: Chess | null;
   board: ({
@@ -23,9 +25,11 @@ export default function ChessBoard({
   } | null)[][]>) => void) | null;
   socket: WebSocket;
   myColor: "black" | "white" | "spectator" | null;
+  moveCount?:number;
+  setMoveCount?:(x:any)=>void;
 }) {
   const [from, setFrom] = useState<Square | null>(null);
-  const [moveCount, setMoveCount] = useState<number>(0);
+  // const [moveCount, setMoveCount] = useState<number>(0);
 
   function playSound() {
     new Audio(moveSound).play();
@@ -40,7 +44,7 @@ export default function ChessBoard({
   const isFlipped = myColor === "black";
 
   return (
-    <div className="flex justify-center items-center">
+    <div className="flex flex-col justify-center items-center">
       <div className="grid grid-cols-8 gap-0 border-2 border-gray-500" style={{ width: 520 }}>
         {(isFlipped ? [...board].reverse() : board).map((row, i) =>
           (isFlipped ? [...row].reverse() : row).map((box, j) => {
@@ -51,8 +55,18 @@ export default function ChessBoard({
 
             return (
               <div
+
                 onClick={() => {
                   if (myColor === "spectator") return;
+
+                  if (from === squareRepresentation) {
+                    setFrom(null);
+                    return;
+                  }
+
+                  if (from && squareRepresentation != from) {
+                    setFrom(squareRepresentation);
+                  }
 
                   if (!from) {
                     if ((box?.color === "b" && myColor === "white") || (box?.color === "w" && myColor === "black")) {
@@ -73,18 +87,18 @@ export default function ChessBoard({
 
                     game!.move({ from, to: squareRepresentation });
                     setBoard!(game!.board());
-                    setMoveCount((prev) => prev + 1);
-                    setFrom(null);
+                    setMoveCount!(moveCount! + 1);
+                    setFrom(null); 
                   }
                 }}
+
                 key={j}
                 style={{
                   height: 65,
                   backgroundColor: (i + j) % 2 === 0 ? `#779756` : '#b3bbc7',
                 }}
-                className={`flex items-center justify-center text-2xl font-bold hover:scale-105 transition-transform ${
-                  isSelected ? "border-2 border-neutral-800 scale-105" : ""
-                }`}
+                className={`flex items-center justify-center text-2xl font-bold hover:scale-105 transition-transform ${isSelected ? "border-2 border-neutral-800 scale-105" : ""
+                  }`}
               >
                 {box && (
                   <img
@@ -98,6 +112,11 @@ export default function ChessBoard({
           })
         )}
       </div>
+      <div>
+        {(myColor === 'white' && game?.turn() === 'w') && <p>Your turn</p>}
+        {(myColor === 'black' && game?.turn() === 'b') && <p>Your turn</p>}
+      </div>
+
     </div>
   );
 }

@@ -74,7 +74,7 @@ export class Game {
       this.movesCount++;
 
       
-      await Game.redisClient.publish(this.gameId,JSON.stringify(this.board.board()));
+      await Game.redisClient.publish(this.gameId,JSON.stringify(this.board.fen()));
 
       //after the updation, checking if its a CHECKMATE and notifying the users
       if (this.board.isGameOver()) {
