@@ -3,7 +3,14 @@ import { WebSocket } from "ws";
 import { GAME_OVER, INIT_GAME, MOVE } from "./Messages";
 import { createClient, RedisClientType } from "redis";
 import { GameManager } from "./GameManager";
+import dotenv from 'dotenv'
+dotenv.config();
 
+
+const REDIS_USERNAME=process.env.REDIS_USERNAME
+const REDIS_PASSWORD=process.env.REDIS_PASSWORD
+const REDIS_HOST=process.env.REDIS_HOST
+const REDIS_PORT=Number(process.env.REDIS_PORT)
 export class Game {
   private static redisClient:RedisClientType;
 
@@ -23,7 +30,14 @@ export class Game {
     this.player1Name=player1Name;
     this.player2Name=player2Name;
     
-    Game.redisClient=createClient();
+    Game.redisClient=createClient({
+      username: REDIS_USERNAME,
+      password: REDIS_PASSWORD,
+      socket: {
+          host: REDIS_HOST,
+          port: REDIS_PORT
+      }
+  });
     Game.redisClient.connect();
 
     this.player1.send(

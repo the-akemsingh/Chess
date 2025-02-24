@@ -1,6 +1,14 @@
 import { createClient, RedisClientType } from "redis";
 import { WebSocket } from "ws";
 import { SPECTATE_UPDATE } from "./Messages";
+import dotenv from 'dotenv'
+dotenv.config();
+
+const REDIS_USERNAME=process.env.REDIS_USERNAME
+const REDIS_PASSWORD=process.env.REDIS_PASSWORD
+const REDIS_HOST=process.env.REDIS_HOST
+const REDIS_PORT=Number(process.env.REDIS_PORT)
+
 
 
 export class SpectateGame {
@@ -17,7 +25,14 @@ export class SpectateGame {
   private subscriptions: Map<string, Set<WebSocket>>;
 
   constructor() {
-    this.redisClient = createClient();
+    this.redisClient = createClient({
+      username: REDIS_USERNAME,
+      password: REDIS_PASSWORD,
+      socket: {
+          host: REDIS_HOST,
+          port: REDIS_PORT
+      }
+  });
     this.redisClient.connect();
     this.subscriptions = new Map();
   }

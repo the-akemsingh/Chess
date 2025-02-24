@@ -1,13 +1,13 @@
 import {  useEffect, useState } from "react"
 
 
-const WS_URL = import.meta.env.VITE_WS_URL as string;
+const VITE_WS_URL = import.meta.env.VITE_WS_URL;
 
 const useSocket = () => {
     const [socket, setSocket] = useState<WebSocket | null>(null);
 
     useEffect(() => {
-        const ws = new WebSocket(WS_URL);
+        const ws = new WebSocket(VITE_WS_URL);
         ws.onopen = () => {
             setSocket(ws);
         }
