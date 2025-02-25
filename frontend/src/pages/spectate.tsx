@@ -22,6 +22,9 @@ export default function Spectate() {
   const [board, setBoard] = useState(game.board());
 
 
+  const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+
   function playSound() {
     new Audio(moveSound).play();
   }
@@ -63,7 +66,7 @@ export default function Spectate() {
 
   useEffect(() => {
     async function getGames() {
-      const res = await axios.get("http://localhost:3000/all-games");
+      const res = await axios.get(VITE_BACKEND_URL);
       //@ts-ignore
       setGames(res.data.games);
     }
