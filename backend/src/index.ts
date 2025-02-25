@@ -4,7 +4,18 @@ import express from 'express'
 import { Request, Response } from "express";
 import cors from 'cors'
 
-const wss = new WebSocketServer();
+
+const app=express();
+app.use(cors())
+app.use(express.json());
+
+const httpServer=app.listen(3000,()=>{
+  console.log("server listening on port 3000");
+})
+
+const wss = new WebSocketServer({
+  server:httpServer
+});
 const gameManager = GameManager.getInstance();
 
 wss.on("connection", (ws) => {
@@ -32,9 +43,6 @@ wss.on("connection", (ws) => {
 console.log("WebSocket server is running on ws://localhost:8080");
 
 
-const app=express();
-app.use(cors())
-app.use(express.json());
 app.get("/all-games",(req:Request,res:Response)=>{
   try{
     const games=GameManager.getInstance().getAllGames();
@@ -42,7 +50,4 @@ app.get("/all-games",(req:Request,res:Response)=>{
   }catch(e){
     console.log(e);
   }
-})
-app.listen(3000,()=>{
-  console.log("server listening on port 3000");
 })
