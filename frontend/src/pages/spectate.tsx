@@ -5,6 +5,7 @@ import GameBoard from "../components/GameBoard";
 import { Chess } from "chess.js";
 import { motion } from "framer-motion";
 import moveSound from '/capture.mp3';
+import { useNavigate } from "react-router-dom";
 
 
 export const SPECTATE = "spectate";
@@ -12,7 +13,7 @@ export const SPECTATE_UPDATE = "spectate_update";
 
 export default function Spectate() {
   const socket = useSocket();
-  const [games, setGames] = useState<string[] | null>(null);
+  const [games, setGames] = useState<string[]>([]);
   const [isStarted, setStarted] = useState<boolean>(false);
   const [player1, setPlayer1] = useState<string | null>(null);
   const [player2, setPlayer2] = useState<string | null>(null);
@@ -20,6 +21,7 @@ export default function Spectate() {
   //@ts-ignore
   const [game, setGame] = useState(new Chess());
   const [board, setBoard] = useState(game.board());
+  const navigate = useNavigate();
 
 
   const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -69,6 +71,8 @@ export default function Spectate() {
       const res = await axios.get(VITE_BACKEND_URL);
       //@ts-ignore
       setGames(res.data.games);
+      //@ts-ignore
+      console.log(res.data.games);
     }
     getGames();
   }, []);
@@ -92,6 +96,9 @@ export default function Spectate() {
       {!isStarted ? (
         <div className="p-6 text-center">
           <h2 className="text-4xl font-bold mb-6 text-black">Available Games</h2>
+          <div>
+            {(games?.length === 0 ) &&  <div className="flex flex-col gap-4">  <p className="text-lg">No games available</p> <button onClick={()=>navigate("/game")} className="px-4 mt-3 py-2 rounded-md border border-black bg-white text-black text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200" > Play </button> </div> }
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {games?.map((game) => (
               <motion.div

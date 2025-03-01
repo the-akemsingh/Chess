@@ -13,9 +13,7 @@ export const MOVE = "move";
 export const GAME_OVER = "game_over";
 export const GAME_ENDED = "game_ended";
 
-
-
-export default function Landing() {
+export default function Game() {
     //@ts-ignore
     const [game, setGame] = useState(new Chess());
     const [board, setBoard] = useState(game.board());
@@ -30,8 +28,7 @@ export default function Landing() {
     const navigate = useNavigate();
 
     const [moveCount, setMoveCount] = useState<number>(0);
-
-    const { width, height } = useWindowSize()
+    const { width, height } = useWindowSize();
 
     useEffect(() => {
         if (!socket) return;
@@ -48,7 +45,7 @@ export default function Landing() {
                 case MOVE:
                     game.move(message.move);
                     setBoard(game.board());
-                    setMoveCount(moveCount + 1)
+                    setMoveCount(moveCount + 1);
                     break;
                 case GAME_OVER:
                     try {
@@ -74,25 +71,20 @@ export default function Landing() {
     }
 
     return (
-        <div className="grid grid-cols-2 min-h-screen playwrite-it-moderna-one">
+        <div className={`grid ${width < 1100 ? 'grid-cols-1 ' : 'grid-cols-2'} min-h-screen playwrite-it-moderna-one`}>
             <div className="flex justify-center items-center p-10">
                 {!isStarted && <img src="/image.png" alt="" />}
                 {isStarted && !finding && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
                     <GameBoard game={game} board={board} setBoard={setBoard} socket={socket} myColor={myColor} moveCount={moveCount} setMoveCount={setMoveCount} />
                 </motion.div>}
-
             </div>
 
-            <div className="flex flex-col justify-center items-center p-10 space-y-6">
+            <div className={`flex ${width<1100? ' -mt-96 ' : ' ' } flex-col justify-center items-center p-10 space-y-6`}>
                 {winner ? (
                     <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} transition={{ duration: 0.5 }}>
                         <h2 className="text-4xl font-bold">
                             {winner === myColor ? "🎉 You Won!" : "😞 You Lost"}
-                            {winner === myColor && <Confetti
-                                width={width}
-                                height={height}
-                            />}
-
+                            {winner === myColor && <Confetti width={width} height={height} />}
                         </h2>
                         <button
                             onClick={() => navigate("/")}
@@ -110,7 +102,7 @@ export default function Landing() {
                                     placeholder="Enter your name"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    className="border-2 min-w-80 border-gray-500 p-3  rounded-lg  "
+                                    className="border-2 min-w-80 border-gray-500 p-3 rounded-lg"
                                 />
                                 <button onClick={() => {
                                     if (!name.trim()) {
@@ -119,7 +111,7 @@ export default function Landing() {
                                     }
                                     socket.send(JSON.stringify({ type: INIT_GAME, name }));
                                     setFinding(true);
-                                }} className="px-4 mt-3   py-2 rounded-md border border-black bg-white text-black text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200">
+                                }} className="px-4 mt-3 py-2 rounded-md border border-black bg-white text-black text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200">
                                     Find opponent
                                 </button>
                             </motion.div>
@@ -136,18 +128,12 @@ export default function Landing() {
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
                                 <div className="flex flex-col items-center">
                                     <span className="text-xl font-bold">Finding an opponent...</span>
-                                    <motion.div
-                                        className="mt-4 w-8 h-8 border-4 border-t-transparent border-white rounded-full animate-spin"
-                                    ></motion.div>
+                                    <motion.div className="mt-4 w-8 h-8 border-4 border-t-transparent border-white rounded-full animate-spin"></motion.div>
                                 </div>
                             </motion.div>
                         )}
                     </>
                 )}
-                {/* {winner && winner === myColor && <Confetti
-                    width={width}
-                    height={height}
-                />} */}
             </div>
         </div>
     );
