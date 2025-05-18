@@ -5,7 +5,7 @@ import GameBoard from "../components/GameBoard";
 import { Chess } from "chess.js";
 import { motion } from "framer-motion";
 import moveSound from '/capture.mp3';
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { BackgroundBeams } from "../components/ui/background-beams";
 
 
@@ -22,7 +22,6 @@ export default function Spectate() {
   //@ts-ignore
   const [game, setGame] = useState(new Chess());
   const [board, setBoard] = useState(game.board());
-  const navigate = useNavigate();
 
 
   const VITE_BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
