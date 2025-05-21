@@ -80,14 +80,14 @@ export default function Game() {
         <div>
             <div className={`grid ${width < 1100 ? 'grid-cols-1 ' : 'grid-cols-2'} min-h-screen  bg-neutral-950 relative`}>
 
-                <div className="flex justify-center items-center p-10  z-20">
+                <div className="flex justify-center items-center p-10 z-20">
                     {!isStarted && <img src="/image.png" alt="" />}
                     {isStarted && !finding && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
                         <GameBoard game={game} board={board} setBoard={setBoard} socket={socket} myColor={myColor} moveCount={moveCount} setMoveCount={setMoveCount} />
                     </motion.div>}
                 </div>
 
-                <div className={`flex ${width < 1100 ? ' -mt-96 ' : ' '} flex-col justify-center items-center p-10 space-y-6 relative z-20`}>
+                <div className={`flex ${width < 1100 ? ' -mt-96 ' : ' '} flex-col  justify-center items-center p-10 space-y-6 relative z-20`}>
                     {winner ? (
                         <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} transition={{ duration: 0.5 }}>
                             <h2 className="text-4xl font-bold text-white libre-franklin-900">
@@ -126,7 +126,7 @@ export default function Game() {
                             ) : null}
 
                             {isStarted && (
-                                <motion.div className="" initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ duration: 0.3 }}>
+                                <motion.div className="mt-40 " initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ duration: 0.3 }}>
                                     <h2 className="text-2xl text-white libre-franklin-900">You are playing as {myColor}</h2>
                                     <p className="mt-3 text-lg text-amber-500 cal-sans-regular">Game ID: {gameId}</p>
                                 </motion.div>

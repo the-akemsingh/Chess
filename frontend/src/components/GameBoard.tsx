@@ -2,6 +2,7 @@ import { Chess, Color, PieceSymbol, Square } from "chess.js";
 import { useEffect, useState } from "react";
 import { MOVE } from "../pages/game";
 import moveSound from '/capture.mp3';
+import { useWindowSize } from 'react-use';
 
 export default function ChessBoard({
   game,
@@ -25,11 +26,22 @@ export default function ChessBoard({
   } | null)[][]>) => void) | null;
   socket: WebSocket;
   myColor: "black" | "white" | "spectator" | null;
-  moveCount?:number;
-  setMoveCount?:(x:any)=>void;
+  moveCount?: number;
+  setMoveCount?: (x: any) => void;
 }) {
   const [from, setFrom] = useState<Square | null>(null);
-  // const [moveCount, setMoveCount] = useState<number>(0);
+  const { width } = useWindowSize();
+
+  // Calculate responsive sizes
+  const getBoardSize = () => {
+    if (width < 400) return { boardWidth: 280, squareSize: 35, pieceSize: 25 };
+    if (width < 600) return { boardWidth: 320, squareSize: 40, pieceSize: 30 };
+    if (width < 768) return { boardWidth: 400, squareSize: 50, pieceSize: 35 };
+    if (width < 1024) return { boardWidth: 480, squareSize: 60, pieceSize: 40 };
+    return { boardWidth: 520, squareSize: 65, pieceSize: 40 };
+  };
+
+  const { boardWidth, squareSize, pieceSize } = getBoardSize();
 
   function playSound() {
     new Audio(moveSound).play();
@@ -45,7 +57,10 @@ export default function ChessBoard({
 
   return (
     <div className="flex flex-col justify-center items-center">
-      <div className="grid grid-cols-8 gap-0 border-2 border-gray-500" style={{ width: 520 }}>
+      <div 
+        className="grid grid-cols-8 gap-0 border-2 border-gray-500 mx-auto" 
+        style={{ width: boardWidth }}
+      >
         {(isFlipped ? [...board].reverse() : board).map((row, i) =>
           (isFlipped ? [...row].reverse() : row).map((box, j) => {
             const col = isFlipped ? 7 - j : j;
@@ -55,7 +70,6 @@ export default function ChessBoard({
 
             return (
               <div
-
                 onClick={() => {
                   if (myColor === "spectator") return;
 
@@ -88,21 +102,20 @@ export default function ChessBoard({
                     game!.move({ from, to: squareRepresentation });
                     setBoard!(game!.board());
                     setMoveCount!(moveCount! + 1);
-                    setFrom(null); 
+                    setFrom(null);
                   }
                 }}
-
                 key={j}
                 style={{
-                  height: 65,
+                  height: squareSize,
+                  width: squareSize,
                   backgroundColor: (i + j) % 2 === 0 ? `#779756` : '#b3bbc7',
                 }}
-                className={`flex items-center justify-center text-2xl font-bold hover:scale-105 transition-transform ${isSelected ? "border-2 border-neutral-800 scale-105" : ""
-                  }`}
+                className={`flex items-center justify-center text-base sm:text-lg md:text-xl lg:text-2xl font-bold hover:scale-105 transition-transform ${isSelected ? "border-2 border-neutral-800 scale-105" : ""}`}
               >
                 {box && (
                   <img
-                    style={{ height: 40 }}
+                    style={{ height: pieceSize, width: 'auto' }}
                     src={box.color === "b" ? `/${box.type.toLowerCase()}.png` : `/${box?.type.toUpperCase()} copy.png`}
                     alt=""
                   />
@@ -112,11 +125,10 @@ export default function ChessBoard({
           })
         )}
       </div>
-      <div>
+      <div className="mt-2 text-sm md:text-base lg:text-lg text-white text-center">
         {(myColor === 'white' && game?.turn() === 'w') && <p>Your turn</p>}
         {(myColor === 'black' && game?.turn() === 'b') && <p>Your turn</p>}
       </div>
-
     </div>
   );
 }
