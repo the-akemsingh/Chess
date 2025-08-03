@@ -5,6 +5,7 @@ import moveSound from '/capture.mp3';
 import { useWindowSize } from 'react-use';
 
 export default function ChessBoard({
+  gameId,
   game,
   board,
   setBoard,
@@ -13,6 +14,7 @@ export default function ChessBoard({
   moveCount,
   setMoveCount
 }: {
+  gameId: string | null;
   game: Chess | null;
   board: ({
     square: Square;
@@ -92,6 +94,7 @@ export default function ChessBoard({
                     socket.send(
                       JSON.stringify({
                         type: MOVE,
+                        gameId,
                         move: {
                           from,
                           to: squareRepresentation,

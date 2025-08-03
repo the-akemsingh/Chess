@@ -2,13 +2,11 @@ import { useEffect, useState } from "react";
 import useSocket from "../hooks/SocketHook";
 import { Chess } from "chess.js";
 import GameBoard from "../components/GameBoard";
-import {  useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BackgroundBeams } from '../components/ui/background-beams';
 import { useWindowSize } from 'react-use'
 import Confetti from 'react-confetti'
-
-// ... existing code ...
 
 export const INIT_GAME = "init_game";
 export const MOVE = "move";
@@ -17,7 +15,6 @@ export const GAME_ENDED = "game_ended";
 
 
 export default function Game() {
-    // ... existing state code ...
     //@ts-ignore
     const [game, setGame] = useState(new Chess());
     const [board, setBoard] = useState(game.board());
@@ -31,7 +28,7 @@ export default function Game() {
     const socket = useSocket();
     const navigate = useNavigate();
 
-    
+
 
     const [moveCount, setMoveCount] = useState<number>(0);
     const { width, height } = useWindowSize();
@@ -41,6 +38,8 @@ export default function Game() {
 
         socket.onmessage = (event) => {
             const message = JSON.parse(event.data);
+            console.log("Received message:", message);
+            if (winner) return;
             switch (message.type) {
                 case INIT_GAME:
                     setFinding(false);
@@ -73,7 +72,10 @@ export default function Game() {
     }, [socket]);
 
     if (!socket) {
-        return <div className="flex justify-center items-center h-screen text-xl font-bold text-white libre-franklin-900">Connecting...</div>;
+        return <div>
+            <div className="flex z-20 p-40 relative justify-center items-center text-xl font-bold text-white">Connecting...</div>
+            <BackgroundBeams className='bg-neutral-950' />
+        </div>
     }
 
     return (
@@ -83,7 +85,7 @@ export default function Game() {
                 <div className="flex justify-center items-center p-10 z-20">
                     {!isStarted && <img src="/image.png" alt="" />}
                     {isStarted && !finding && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
-                        <GameBoard game={game} board={board} setBoard={setBoard} socket={socket} myColor={myColor} moveCount={moveCount} setMoveCount={setMoveCount} />
+                        <GameBoard gameId={gameId} game={game} board={board} setBoard={setBoard} socket={socket} myColor={myColor} moveCount={moveCount} setMoveCount={setMoveCount} />
                     </motion.div>}
                 </div>
 

@@ -5,7 +5,13 @@ import { Request, Response } from "express";
 import cors from "cors";
 
 const app = express();
-app.use(cors());
+const corsOptions = {
+  origin: ["http://localhost:5173"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const httpServer = app.listen(3000, () => {
@@ -18,8 +24,7 @@ const wss = new WebSocketServer({
 const gameManager = GameManager.getInstance();
 
 wss.on("connection", (ws) => {
-  
-  console.log("New client connected");
+  console.log("A client connected");
 
   ws.on("error", (error) => {
     console.error("WebSocket error:", error);
@@ -29,8 +34,8 @@ wss.on("connection", (ws) => {
     gameManager.addUser(ws);
 
     ws.on("close", () => {
-      console.log("Client disconnected");
-      gameManager.deleteUser(ws);
+      console.log("A client disconnected");
+      gameManager.deleteUser(null, ws);
     });
   } catch (e) {
     console.error("Error handling WebSocket connection:", e);

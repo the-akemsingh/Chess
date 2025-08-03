@@ -1,38 +1,40 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BackgroundBeams } from '../components/ui/background-beams';
 import { Announcement, AnnouncementTitle } from "../components/ui/announcement";
 
 export default function Landing() {
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} className="min-h-[90vh] bg-white px-4 md:px-8">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} className="min-h-screen bg-neutral-950">
       <div className="flex relative z-20 flex-col items-center text-center pt-12 md:pt-20">
-        <Announcement className=" border-white mb-7">
+        <Announcement className=" mb-7">
           <AnnouncementTitle >
-            <span className="p-1 libre-franklin-700 text-white text-sm montserrat-500">
-            Play Chess Online ✨
+            <span className="p-1 text-white libre-franklin-900 text-xl">
+              Train your mind ✨
             </span>
           </AnnouncementTitle>
         </Announcement>
-        <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
-          <h1 className="text-5xl md:text-7xl lg:text-9xl text-white libre-franklin-900 mt-10 font-bold">Think, Move, Conquer.</h1>
+        <div className="flex gap-4 flex-col">
+          <h1 className="text-3xl border p-1 border-white md:text-6xl  text-white libre-franklin-900 shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] ">Master Your Game.</h1>
+          <h1 className="text-3xl md:text-6xl  text-white libre-franklin-900 ">Play Chess Online.</h1>
         </div>
-        <p className="text-xl md:text-2xl cal-sans-regular text-amber-500 mt-10">Play with your friends. Spectate live matches.</p>
+        <p className="text-xl md:text-2xl cal-sans-regular p-4 text-amber-500 mt-10">Join millions of players from around the world on the leading online <br /> chess platform. Play, learn, and grow your skills.</p>
         <div className="mt-6 flex flex-col md:flex-row gap-4">
           <Link
             to="/game"
-            className="px-4 mt-3 py-2 text-2xl rounded-md border-black bg-black text-white libre-franklin-900 "
+           className="px-4 mt-3 py-2 text-2xl rounded-md border border-black bg-black text-white libre-franklin-900 shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] transition duration-100 ease-in-out transform hover:scale-105"
           >
             Play Now
           </Link>
 
-          <Link to={'/spectate'} className="px-4 mt-3 text-2xl py-2 border-black rounded-md border bg-black text-white libre-franklin-900">
+          <Link to={'/spectate'} className="px-4 mt-3 text-2xl py-2 border-black rounded-md border bg-white text-black libre-franklin-900 shadow-[4px_4px_0px_0px_rgba(255,255,1)] transition duration-100 ease-in-out transform hover:scale-105">
             Spectate
           </Link>
         </div>
       </div>
-      <BackgroundBeams className='bg-neutral-950 ' />
+      {/* <div className="mt-20 bg-white min-h-24 flex flex-col items-center justify-center ">
+        <span className="text-xl md:text-3xl libre-franklin-900 ">Ready to make your move?</span>
+      </div> */}
     </motion.div>
   );
 }
