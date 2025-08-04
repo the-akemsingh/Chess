@@ -1,7 +1,5 @@
 import { Chess } from "chess.js";
-import { WebSocket } from "ws";
-import { GAME_OVER, INIT_GAME, MOVE } from "./Messages";
-import { createClient, RedisClientType } from "redis";
+import { GAME_OVER, INIT_GAME, MOVE, SPECTATE_UPDATE } from "./Messages";
 import { GameManager } from "./GameManager";
 import dotenv from "dotenv";
 import { RedisPublisher } from "./RedisPublisher";
@@ -26,14 +24,19 @@ export class Game {
     player1Id: string,
     player2Id: string,
     player1Name: string,
-    player2Name: string
+    player2Name: string,
+    gameId?: string
   ) {
     this.player1Id = player1Id;
     this.player2Id = player2Id;
     this.player1Name = player1Name;
     this.player2Name = player2Name;
     this.board = new Chess();
-    this.gameId = Math.random().toString();
+    if (gameId) {
+      this.gameId = gameId;
+    } else {
+      this.gameId = Math.random().toString();
+    }
 
     Game.redisPublisher = RedisPublisher.getInstance();
 
@@ -44,6 +47,7 @@ export class Game {
         payload: {
           color: "white",
           id: this.gameId,
+          opponentName: player2Name,
         },
       })
     );
@@ -55,6 +59,7 @@ export class Game {
         payload: {
           color: "black",
           id: this.gameId,
+          opponentName: player1Name,
         },
       })
     );
@@ -88,11 +93,6 @@ export class Game {
 
       this.movesCount++;
 
-      // await Game.redisClient.publish(
-      //   this.gameId,
-      //   JSON.stringify(this.board.fen())
-      // );
-
       //after the updation, checking if its a CHECKMATE and notifying the users
       if (this.board.isGameOver()) {
         console.log("Game Over");
@@ -105,8 +105,18 @@ export class Game {
             move,
           },
         });
+        const toSpectators = {
+          type: SPECTATE_UPDATE,
+          payload: {
+            board: this.board.fen(),
+            winner,
+            player1Name: this.player1Name,
+            player2Name: this.player2Name,
+          },
+        };
         Game.redisPublisher.publish(this.player1Id, gameOverMessage);
         Game.redisPublisher.publish(this.player2Id, gameOverMessage);
+        Game.redisPublisher.publish(this.gameId, JSON.stringify(toSpectators));
 
         //  Remove the game from GameManager after completion
         GameManager.getInstance().removeGame(this.gameId);
@@ -123,6 +133,15 @@ export class Game {
         type: MOVE,
         move,
       });
+       const toSpectators = {
+          type: SPECTATE_UPDATE,
+          payload: {
+            board: this.board.fen(),
+            player1Name: this.player1Name,
+            player2Name: this.player2Name,
+          },
+        };
+      Game.redisPublisher.publish(this.gameId, JSON.stringify(toSpectators));
       if (this.movesCount % 2 === 0) {
         // this.player1.send(moveMessage);
         Game.redisPublisher.publish(this.player1Id, moveMessage);

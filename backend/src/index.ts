@@ -45,7 +45,7 @@ wss.on("connection", (ws) => {
 app.get("/all-games", (req: Request, res: Response) => {
   try {
     const games = GameManager.getInstance().getAllGames();
-    res.status(201).send({ games });
+    res.status(200).send(games);
   } catch (e) {
     console.log(e);
   }

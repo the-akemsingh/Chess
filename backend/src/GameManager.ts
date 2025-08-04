@@ -1,5 +1,12 @@
 import { WebSocket } from "ws";
-import { GAME_ENDED, INIT_GAME, MOVE, SPECTATE } from "./Messages";
+import {
+  GAME_ENDED,
+  INIT_GAME,
+  MOVE,
+  PLAYER_MATCHED,
+  SPECTATE,
+  SPECTATE_UPDATE,
+} from "./Messages";
 import { Game } from "./Game";
 import { SpectateGame } from "./Spectate";
 import { v4 as uuidv4 } from "uuid";
@@ -72,7 +79,9 @@ export class GameManager {
         if (message.type === INIT_GAME) {
           const isAnyUserWaiting =
             await this.WaitingUserQueue.checkWaitingUser();
+
           console.log("Is any user waiting:", isAnyUserWaiting);
+
           if (isAnyUserWaiting) {
             const waitingUserData = JSON.parse(
               (await this.WaitingUserQueue.getWaitingUser()) as string
@@ -90,13 +99,16 @@ export class GameManager {
               player1Id: waitingUserData.userId,
               player2Id: userId,
             });
+
             //publish for the waiting user - that match is found
             const messageToPublish = {
-              type: "player_matched",
+              type: PLAYER_MATCHED,
               userId: userId, // player2Id
               userName: message.name, // player2Name
               waitingUserName: waitingUserData.name, // player1Name
+              gameId: game.gameId, // gameId
             };
+
             this.RedisPublisher.publish(
               waitingUserData.userId,
               JSON.stringify(messageToPublish)
@@ -119,7 +131,9 @@ export class GameManager {
         }
 
         if (message.type === MOVE) {
+          //get the game
           const gameInfo = this.games.get(message.gameId);
+          //find this player's id
           let playerId: string | undefined;
           for (const [id, ws] of this.allUsers.entries()) {
             if (ws === socket) {
@@ -127,58 +141,61 @@ export class GameManager {
               break;
             }
           }
+          //making move
           if (gameInfo) {
             gameInfo.game.makeMove(playerId as string, message.move);
           }
         }
 
-        // if (message.type === SPECTATE) {
-        //   const game = this.games.find((game) => {
-        //     return game.gameId === message.gameId;
-        //   });
-
-        //   if (game) {
-        //     SpectateGame.getInstance().subscribe(message.gameId, socket);
-        //   }
-
-        //   socket.send(
-        //     JSON.stringify({
-        //       type: SPECTATE,
-        //       game: game?.gameBoard().board(),
-        //       player1: game?.player1Name,
-        //       player2: game?.player2Name,
-        //     })
-        //   );
-        // }
+        if (message.type === SPECTATE) {
+          const gameId = message.gameId;
+          SpectateGame.getInstance().subscribe(gameId, socket);
+        }
       });
       socket.on("close", async () => {
-
         this.deleteUser(null, socket);
-        
+        let playerName: string = "";
         for (const [
           gameId,
           { game, player1Id, player2Id },
         ] of this.games.entries()) {
-          if (player1Id === userId ) {
-            this.RedisPublisher.publish(player2Id, JSON.stringify({
-              type: GAME_ENDED,
-              reason: "Opponent disconnected",
-            }));
+          if (player1Id === userId) {
+            playerName = game.player1Name;
+            this.RedisPublisher.publish(
+              player2Id,
+              JSON.stringify({
+                type: GAME_ENDED,
+                reason: "Opponent disconnected",
+              })
+            );
           }
           if (player2Id === userId) {
-            this.RedisPublisher.publish(player1Id, JSON.stringify({
-              type: GAME_ENDED,
-              reason: "Opponent disconnected",
-            }));
+            playerName = game.player2Name;
+            this.RedisPublisher.publish(
+              player1Id,
+              JSON.stringify({
+                type: GAME_ENDED,
+                reason: "Opponent disconnected",
+              })
+            );
           }
+
+          const toSpectators = {
+            type: SPECTATE_UPDATE,
+            leaved: true,
+            playerId: userId,
+            playerName
+          };
+          this.RedisPublisher.publish(gameId, JSON.stringify(toSpectators));
+
+          // //if the use was waiting user
+          this.WaitingUserQueue.removeWaitingUser();
+
+          // If the user was spectating, unsubscribe them
+          SpectateGame.getInstance().unsubscribeByInstance(socket);
+
+          this.games.delete(gameId);
         }
-
-        // //if the use was waiting user
-        this.WaitingUserQueue.removeWaitingUser();
-
-
-        // // If the user was spectating, unsubscribe them
-        // SpectateGame.getInstance().unsubscribeByInstance(socket);
       });
     } catch (e) {
       console.log(e);
@@ -190,9 +207,11 @@ export class GameManager {
   }
 
   getAllGames() {
-    return Array.from(this.games.values()).map((gameInfo) => ({
-      gameId: gameInfo.game.gameId,
-    }));
+    return Array.from(this.games.values()).map((gameInfo) => {
+      return {
+        gameId: gameInfo.game.gameId,
+      };
+    });
   }
 
   removeGame(gameId: string) {

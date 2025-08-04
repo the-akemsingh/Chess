@@ -33,9 +33,14 @@ export class WaitingUserQueue {
   }
 
   async checkWaitingUser(): Promise<boolean> {
-    const result = await this.redisClient.lRange("waitingUser", -1, -1);
-    console.log("Checking waiting user:", result);
-    return result.length > 0;
+    try {
+      const result = await this.redisClient.lRange("waitingUser", -1, -1);
+      console.log("Checking waiting user:", result);
+      return result.length > 0;
+    } catch (e) {
+      console.error("Error checking waiting user:", e);
+      return false;
+    }
   }
 
   addWaitingUser(userData: string) {
@@ -50,12 +55,22 @@ export class WaitingUserQueue {
   }
 
   async getWaitingUser(): Promise<string | null> {
-    const userData = await this.redisClient.rPop("waitingUser");
-    return userData;
+    try {
+      const userData = await this.redisClient.rPop("waitingUser");
+      return userData;
+    } catch (e) {
+      console.error("Error getting waiting user:", e);
+      return null;
+    }
   }
 
   async isThisUserWaiting(userId: string): Promise<boolean> {
-    return this.pendingUserId === userId;
+    try {
+      return this.pendingUserId === userId;
+    } catch (e) {
+      console.error("Error checking if user is waiting:", e);
+      return false;
+    }
   }
 
   async removeWaitingUser() {

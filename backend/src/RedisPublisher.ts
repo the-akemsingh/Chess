@@ -31,6 +31,11 @@ export class RedisPublisher {
   }
 
   publish(userId: string, message: string) {
-    this.redisClient.publish(userId, message);
+    try {
+      this.redisClient.publish(userId, message);
+    } catch (e) {
+      console.error("Error publishing message:", e);
+      return;
+    }
   }
 }
