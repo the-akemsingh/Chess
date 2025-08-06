@@ -24,6 +24,7 @@ export default function Game() {
     const [finding, setFinding] = useState(false);
     const [gameId, setGameId] = useState(null);
     const [name, setName] = useState("");
+    const [opponentName, setOpponentName] = useState("");
 
     const socket = useSocket();
     const navigate = useNavigate();
@@ -46,6 +47,7 @@ export default function Game() {
                     setColor(message.payload.color);
                     setStarted(true);
                     setGameId(message.payload.id);
+                    setOpponentName(message.payload.opponentName);
                     break;
                 case MOVE:
                     game.move(message.move);
@@ -73,32 +75,31 @@ export default function Game() {
 
     if (!socket) {
         return <div>
-            <div className="flex z-20 p-40 relative justify-center items-center text-xl font-bold text-white">Connecting...</div>
+            <div className="flex z-20 p-6 sm:p-20 md:p-40 relative justify-center items-center text-lg sm:text-xl font-bold text-white min-h-screen">Connecting...</div>
             <BackgroundBeams className='bg-neutral-950' />
         </div>
     }
 
     return (
         <div>
-            <div className={`grid ${width < 1100 ? 'grid-cols-1 ' : 'grid-cols-2'} min-h-screen  bg-neutral-950 relative`}>
+            <div className={`${width < 1100 ? 'flex mt-20 flex-col' : 'grid grid-cols-2'} min-h-screen bg-neutral-950 relative`}>
 
                 <div className="flex justify-center items-center p-10 z-20">
-                    {!isStarted && <img src="/image.png" alt="" />}
+                    {!isStarted && <img src="/image.png" alt="" className="max-w-full h-auto" />}
                     {isStarted && !finding && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
                         <GameBoard gameId={gameId} game={game} board={board} setBoard={setBoard} socket={socket} myColor={myColor} moveCount={moveCount} setMoveCount={setMoveCount} />
                     </motion.div>}
                 </div>
 
-                <div className={`flex ${width < 1100 ? ' -mt-96 ' : ' '} flex-col  justify-center items-center p-10 space-y-6 relative z-20`}>
+                <div className="flex flex-col justify-center items-center p-6 md:p-10 space-y-6 relative z-20">
                     {winner ? (
-                        <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} transition={{ duration: 0.5 }}>
-                            <h2 className="text-4xl font-bold text-white libre-franklin-900">
+                        <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} transition={{ duration: 0.5 }} className="text-center">
+                            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white libre-franklin-900">
                                 {winner === myColor ? "🎉 You Won!" : "😞 You Lost"}
                                 {winner === myColor && <Confetti width={width} height={height} />}
                             </h2>
                             <button
-                                onClick={() => navigate("/")}
-                                className="bg-amber-500 hover:bg-amber-600 px-6 py-3 rounded-lg text-2xl font-bold mt-5 text-white libre-franklin-900"
+                                className="bg-amber-500 hover:bg-amber-600 px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-xl sm:text-2xl font-bold mt-5 text-white libre-franklin-900"
                             >
                                 Find Next Match
                             </button>
@@ -106,13 +107,13 @@ export default function Game() {
                     ) : (
                         <>
                             {!isStarted && !finding ? (
-                                <motion.div className="flex flex-col" initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }}>
+                                <motion.div className="flex flex-col w-full max-w-xs sm:max-w-sm" initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }}>
                                     <input
                                         type="text"
                                         placeholder="Enter your name"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        className="border-2 min-w-80 border-amber-500 bg-neutral-900 text-white p-3 rounded-lg cal-sans-regular placeholder:text-gray-400"
+                                        className="border-2 w-full border-amber-500 bg-neutral-900 text-white p-3 rounded-lg cal-sans-regular placeholder:text-gray-400"
                                     />
                                     <button onClick={() => {
                                         if (!name.trim()) {
@@ -128,16 +129,30 @@ export default function Game() {
                             ) : null}
 
                             {isStarted && (
-                                <motion.div className="mt-40 " initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ duration: 0.3 }}>
-                                    <h2 className="text-2xl text-white libre-franklin-900">You are playing as {myColor}</h2>
-                                    <p className="mt-3 text-lg text-amber-500 cal-sans-regular">Game ID: {gameId}</p>
+                                <motion.div className="flex flex-col justify-between space-y-4 text-center md:text-left mt-4 md:mt-0" initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ duration: 0.3 }}>
+                                    <div>
+                                        {opponentName && (
+                                            <h2 className="text-xl sm:text-2xl text-white libre-franklin-900">
+                                                {opponentName}
+                                            </h2>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl sm:text-2xl text-white libre-franklin-900">You are playing as {myColor}</h2>
+                                        <p className="mt-2 text-base sm:text-lg text-amber-500 cal-sans-regular">Game ID: {gameId}</p>
+                                    </div>
+                                    <div>
+                                        {name && (
+                                            <p className="text-base sm:text-lg text-white cal-sans-regular"> {name}</p>
+                                        )}
+                                    </div>
                                 </motion.div>
                             )}
 
                             {finding && (
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="w-full">
                                     <div className="flex flex-col items-center">
-                                        <span className="text-xl font-bold text-white libre-franklin-900">Finding an opponent...</span>
+                                        <span className="text-lg sm:text-xl font-bold text-white libre-franklin-900 text-center">Finding an opponent...</span>
                                         <motion.div className="mt-4 w-8 h-8 border-4 border-t-transparent border-amber-500 rounded-full animate-spin"></motion.div>
                                     </div>
                                 </motion.div>
