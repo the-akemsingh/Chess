@@ -12,7 +12,9 @@ export default function ChessBoard({
   socket,
   myColor,
   moveCount,
-  setMoveCount
+  setMoveCount,
+  name,
+  opponentName
 }: {
   gameId: string | null;
   game: Chess | null;
@@ -30,6 +32,8 @@ export default function ChessBoard({
   myColor: "black" | "white" | "spectator" | null;
   moveCount?: number;
   setMoveCount?: (x: any) => void;
+  name: string;
+  opponentName:string;
 }) {
   const [from, setFrom] = useState<Square | null>(null);
   const { width } = useWindowSize();
@@ -58,9 +62,12 @@ export default function ChessBoard({
   const isFlipped = myColor === "black";
 
   return (
-    <div className="flex flex-col justify-center items-center">
-      <div 
-        className="grid grid-cols-8 gap-0 border-2 border-gray-500 mx-auto" 
+    <div className="flex mt-20 flex-col justify-center items-center">
+      <div className="mt-2 flex flex-col text-sm md:text-base lg:text-lg text-white text-center">
+        <p className="font-bold" >{opponentName}</p>
+      </div>
+      <div
+        className="grid grid-cols-8 gap-0 border-2 border-gray-500 mx-auto"
         style={{ width: boardWidth }}
       >
         {(isFlipped ? [...board].reverse() : board).map((row, i) =>
@@ -128,9 +135,10 @@ export default function ChessBoard({
           })
         )}
       </div>
-      <div className="mt-2 text-sm md:text-base lg:text-lg text-white text-center">
-        {(myColor === 'white' && game?.turn() === 'w') && <p>Your turn</p>}
-        {(myColor === 'black' && game?.turn() === 'b') && <p>Your turn</p>}
+      <div className="mt-2 flex flex-col text-sm md:text-base lg:text-lg text-white text-center">
+        {(myColor === 'white' && game?.turn() === 'w') && <p className="text-red-500" >Your turn</p>}
+        {(myColor === 'black' && game?.turn() === 'b') && <p className="text-red-500" >Your turn</p>}
+        <p className="font-bold" >{name}</p>
       </div>
     </div>
   );

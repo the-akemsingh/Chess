@@ -87,7 +87,7 @@ export default function Game() {
                 <div className="flex justify-center items-center p-10 z-20">
                     {!isStarted && <img src="/image.png" alt="" className="max-w-full h-auto" />}
                     {isStarted && !finding && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
-                        <GameBoard gameId={gameId} game={game} board={board} setBoard={setBoard} socket={socket} myColor={myColor} moveCount={moveCount} setMoveCount={setMoveCount} />
+                        <GameBoard gameId={gameId} game={game} board={board} setBoard={setBoard} socket={socket} myColor={myColor} moveCount={moveCount} setMoveCount={setMoveCount} name={name} opponentName={opponentName} />
                     </motion.div>}
                 </div>
 
@@ -131,20 +131,7 @@ export default function Game() {
                             {isStarted && (
                                 <motion.div className="flex flex-col justify-between space-y-4 text-center md:text-left mt-4 md:mt-0" initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ duration: 0.3 }}>
                                     <div>
-                                        {opponentName && (
-                                            <h2 className="text-xl sm:text-2xl text-white libre-franklin-900">
-                                                {opponentName}
-                                            </h2>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <h2 className="text-xl sm:text-2xl text-white libre-franklin-900">You are playing as {myColor}</h2>
                                         <p className="mt-2 text-base sm:text-lg text-amber-500 cal-sans-regular">Game ID: {gameId}</p>
-                                    </div>
-                                    <div>
-                                        {name && (
-                                            <p className="text-base sm:text-lg text-white cal-sans-regular"> {name}</p>
-                                        )}
                                     </div>
                                 </motion.div>
                             )}
