@@ -14,6 +14,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+console.log("testing the github actions");
+
 const httpServer = app.listen(3000, () => {
   console.log("server listening on port 3000");
 });
