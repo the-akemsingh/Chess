@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check Out Repo
-        working-directory: ./backend
         uses: actions/checkout@v2
 
       - name: Log in to Docker Hub
