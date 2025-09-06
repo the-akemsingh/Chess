@@ -41,5 +41,5 @@ jobs:
           script: |
             sudo docker pull akemnoorsingh/chess-backend:latest
             sudo docker stop chess-backend || true
-            sudo docker rm chess-backend || true 
-            sudo docker run -d --name chess-backend -p 3000:3000 akemnoorsingh/chess-backend:latest
+            sudo docker rm chess-backend || true
+            sudo docker run -d --name chess-backend -p 3000:3000 --restart unless-stopped -e REDIS_USERNAME=${{ secrets.REDIS_USERNAME }} -e REDIS_PORT=${{ secrets.REDIS_PORT }} -e REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }} -e REDIS_HOST=${{ secrets.REDIS_HOST }} akemnoorsingh/chess-backend:latest
