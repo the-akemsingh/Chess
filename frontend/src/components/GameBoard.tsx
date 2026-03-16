@@ -33,7 +33,7 @@ export default function ChessBoard({
   moveCount?: number;
   setMoveCount?: (x: any) => void;
   name: string;
-  opponentName:string;
+  opponentName: string;
 }) {
   const [from, setFrom] = useState<Square | null>(null);
   const { width } = useWindowSize();
@@ -64,7 +64,7 @@ export default function ChessBoard({
   return (
     <div className="flex mt-20 flex-col justify-center items-center">
       <div className="mt-2 flex flex-col text-sm md:text-base lg:text-lg text-white text-center">
-        <p className="font-bold" >{opponentName}</p>
+        {myColor !== "spectator" && <p className="font-bold" >{opponentName}</p>}
       </div>
       <div
         className="grid grid-cols-8 gap-0 border-2 border-gray-500 mx-auto"
@@ -138,7 +138,7 @@ export default function ChessBoard({
       <div className="mt-2 flex flex-col text-sm md:text-base lg:text-lg text-white text-center">
         {(myColor === 'white' && game?.turn() === 'w') && <p className="text-red-500" >Your turn</p>}
         {(myColor === 'black' && game?.turn() === 'b') && <p className="text-red-500" >Your turn</p>}
-        <p className="font-bold" >{name}</p>
+        {myColor !== "spectator" && <p className="font-bold" >{name}</p>}
       </div>
     </div>
   );

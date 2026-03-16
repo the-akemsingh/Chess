@@ -137,7 +137,7 @@ export default function Spectate() {
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-8">
-            <GameBoard gameId={null} board={board!} game={null} myColor="spectator" setBoard={null} socket={socket!} />
+            <GameBoard gameId={null} game={null} board={board!} setBoard={null} socket={socket!} myColor="spectator" name={player1 as string} opponentName={player2 as string} />
             <div className="flex flex-col justify-between items-center text-3xl font-black text-black">
               {!winner && !playerLeft && (
                 <>
