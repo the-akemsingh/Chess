@@ -1,11 +1,7 @@
 import { createClient, RedisClientType } from "redis";
 import dotenv from "dotenv";
+import { Redis } from "./utils/RedisCreds";
 dotenv.config();
-
-const REDIS_USERNAME = process.env.REDIS_USERNAME;
-const REDIS_PASSWORD = process.env.REDIS_PASSWORD;
-const REDIS_HOST = process.env.REDIS_HOST;
-const REDIS_PORT = Number(process.env.REDIS_PORT);
 
 export class WaitingUserQueue {
   private static instance: WaitingUserQueue;
@@ -21,33 +17,32 @@ export class WaitingUserQueue {
   }
 
   constructor() {
+    Redis.validateCredentials();
     this.redisClient = createClient({
-      username: REDIS_USERNAME,
-      password: REDIS_PASSWORD,
+      username: Redis.get("REDIS_USERNAME"),
+      password: Redis.get("REDIS_PASSWORD"),
       socket: {
-        host: REDIS_HOST,
-        port: REDIS_PORT,
+        host: Redis.get("REDIS_HOST"),
+        port: Redis.get("REDIS_PORT"),
       },
     });
     this.redisClient.connect();
   }
 
-  async checkWaitingUser(): Promise<boolean> {
+  async isAnyUserWaiting(): Promise<boolean> {
     try {
-      const result = await this.redisClient.lRange("waitingUser", -1, -1);
-      console.log("Checking waiting user:", result);
-      return result.length > 0;
+      const result = await this.redisClient.lLen("waitingUser");
+      return result > 0;
     } catch (e) {
       console.error("Error checking waiting user:", e);
       return false;
     }
   }
 
-  addWaitingUser(userData: string) {
+  async addWaitingUser(userData: { userId: string; name: string }) {
     try {
-      this.pendingUserId = JSON.parse(userData).userId;
-      this.redisClient.lPush("waitingUser", userData);
-      console.log("Added waiting user:", userData);
+      this.pendingUserId = userData.userId;
+      await this.redisClient.lPush("waitingUser", JSON.stringify(userData));
     } catch (e) {
       console.error("Error adding waiting user:", e);
       return;

@@ -1,30 +1,30 @@
 import { WebSocket } from "ws";
 import {
+  ACTIVE,
   GAME_ENDED,
+  gameStateType,
   INIT_GAME,
   MOVE,
-  PLAYER_MATCHED,
   SPECTATE,
   SPECTATE_UPDATE,
-} from "./Messages";
-import { Game } from "./Game";
+} from "./utils/Messages";
 import { SpectateGame } from "./Spectate";
 import { v4 as uuidv4 } from "uuid";
 import { WaitingUserQueue } from "./WaitingUserQueue";
 import { RedisSubscriber } from "./RedisSubscriber";
 import { RedisPublisher } from "./RedisPublisher";
+import { Chess } from "chess.js";
+import { RedisGameManager } from "./RedisGameManager";
+import makeMove from "./MakeMove";
 
 export class GameManager {
   private static instance: GameManager;
-  private games: Map<
-    string,
-    { game: Game; player1Id: string; player2Id: string }
-  >;
   private allUsers: Map<string, WebSocket>;
 
   private WaitingUserQueue: WaitingUserQueue;
   private RedisSubscriber: RedisSubscriber;
   private RedisPublisher: RedisPublisher;
+  private RedisGameManager: RedisGameManager;
 
   static getInstance() {
     if (!GameManager.instance) {
@@ -35,11 +35,11 @@ export class GameManager {
   }
 
   private constructor() {
-    this.games = new Map();
     this.allUsers = new Map();
     this.WaitingUserQueue = WaitingUserQueue.getInstance();
     this.RedisSubscriber = RedisSubscriber.getInstance();
     this.RedisPublisher = RedisPublisher.getInstance();
+    this.RedisGameManager = RedisGameManager.getInstance();
   }
 
   addUser(socket: WebSocket) {
@@ -54,6 +54,7 @@ export class GameManager {
 
   deleteUser(userId: string | null, socket: WebSocket | null) {
     try {
+      let deletedUserId = userId;
       if (userId) {
         const socket = this.allUsers.get(userId);
         if (socket) {
@@ -62,10 +63,12 @@ export class GameManager {
       }
       for (const [userId, userSocket] of this.allUsers.entries()) {
         if (userSocket === socket) {
+          deletedUserId = userId;
           this.allUsers.delete(userId);
           break;
         }
       }
+      return deletedUserId;
     } catch (e) {
       console.log(e);
     }
@@ -78,61 +81,68 @@ export class GameManager {
 
         if (message.type === INIT_GAME) {
           const isAnyUserWaiting =
-            await this.WaitingUserQueue.checkWaitingUser();
-
-          console.log("Is any user waiting:", isAnyUserWaiting);
+            await this.WaitingUserQueue.isAnyUserWaiting();
 
           if (isAnyUserWaiting) {
             const waitingUserData = JSON.parse(
-              (await this.WaitingUserQueue.getWaitingUser()) as string
+              (await this.WaitingUserQueue.getWaitingUser()) as string,
             );
 
-            const game = new Game(
-              waitingUserData.userId,
-              userId,
-              waitingUserData.name,
-              message.name
-            );
-
-            this.games.set(game.gameId, {
-              game,
+            const gameState: gameStateType = {
+              gameId: uuidv4(),
+              game: new Chess().fen(),
               player1Id: waitingUserData.userId,
               player2Id: userId,
-            });
-
-            //publish for the waiting user - that match is found
-            const messageToPublish = {
-              type: PLAYER_MATCHED,
-              userId: userId, // player2Id
-              userName: message.name, // player2Name
-              waitingUserName: waitingUserData.name, // player1Name
-              gameId: game.gameId, // gameId
+              player1Name: waitingUserData.name,
+              player2Name: message.name,
+              isPlayer1Connected: true,
+              isPlayer2Connected: true,
+              status: ACTIVE,
+              movesCount: 0,
             };
 
-            this.RedisPublisher.publish(
-              waitingUserData.userId,
-              JSON.stringify(messageToPublish)
-            );
+            await this.RedisGameManager.lPush("activeGames", gameState);
 
             //now subscribe for the future game events for itself
-            this.RedisSubscriber.subscribe(userId, socket);
+            await this.RedisSubscriber.subscribe(userId, socket);
+
+            await this.RedisPublisher.publish(
+              gameState.player1Id,
+              JSON.stringify({
+                type: INIT_GAME,
+                payload: {
+                  color: "white",
+                  id: gameState.gameId,
+                  opponentName: gameState.player2Name,
+                },
+              }),
+            );
+            await this.RedisPublisher.publish(
+              gameState.player2Id,
+              JSON.stringify({
+                type: INIT_GAME,
+                payload: {
+                  color: "black",
+                  id: gameState.gameId,
+                  opponentName: gameState.player1Name,
+                },
+              }),
+            );
           } else {
-            console.log("No waiting user found, adding to queue");
-            const waitingUserData = JSON.stringify({
+            const waitingUserData = {
               name: message.name,
               userId,
-            });
-            console.log("Waiting user data:", waitingUserData);
+            };
             //add to the queue
-            this.WaitingUserQueue.addWaitingUser(waitingUserData);
+            await this.WaitingUserQueue.addWaitingUser(waitingUserData);
             //here subscribe to events for own userId
-            this.RedisSubscriber.subscribe(userId, socket);
+            await this.RedisSubscriber.subscribe(userId, socket);
           }
         }
 
         if (message.type === MOVE) {
           //get the game
-          const gameInfo = this.games.get(message.gameId);
+          const gameInfo = await this.RedisGameManager.getGame(message.gameId);
           //find this player's id
           let playerId: string | undefined;
           for (const [id, ws] of this.allUsers.entries()) {
@@ -141,9 +151,14 @@ export class GameManager {
               break;
             }
           }
+          console.log("gameID", JSON.stringify(gameInfo));
           //making move
           if (gameInfo) {
-            gameInfo.game.makeMove(playerId as string, message.move);
+            makeMove(
+              playerId as string,
+              message.move,
+              gameInfo as gameStateType,
+            );
           }
         }
 
@@ -152,69 +167,68 @@ export class GameManager {
           SpectateGame.getInstance().subscribe(gameId, socket);
         }
       });
+
       socket.on("close", async () => {
-        this.deleteUser(null, socket);
-        let playerName: string = "";
-        for (const [
-          gameId,
-          { game, player1Id, player2Id },
-        ] of this.games.entries()) {
-          if (player1Id === userId) {
-            playerName = game.player1Name;
-            this.RedisPublisher.publish(
-              player2Id,
-              JSON.stringify({
-                type: GAME_ENDED,
-                reason: "Opponent disconnected",
-              })
+        const deletedUserId = this.deleteUser(null, socket);
+        const allGames =
+          (await this.RedisGameManager.getGame()) as gameStateType[];
+        let playerName;
+        if (allGames) {
+          const playerGame = allGames.find((game) => {
+            return (
+              game.player1Id === deletedUserId ||
+              game.player2Id === deletedUserId
+            );
+          });
+
+          if (playerGame) {
+            if (playerGame.player1Id === userId) {
+              playerName = playerGame.player1Name;
+              await this.RedisPublisher.publish(
+                playerGame.player2Id,
+                JSON.stringify({
+                  type: GAME_ENDED,
+                  reason: "Opponent disconnected",
+                }),
+              );
+            }
+
+            if (playerGame.player2Id === userId) {
+              playerName = playerGame.player2Name;
+              await this.RedisPublisher.publish(
+                playerGame.player1Id,
+                JSON.stringify({
+                  type: GAME_ENDED,
+                  reason: "Opponent disconnected",
+                }),
+              );
+            }
+
+            const toSpectators = {
+              type: SPECTATE_UPDATE,
+              leaved: true,
+              playerId: userId,
+              playerName,
+            };
+            await this.RedisPublisher.publish(
+              playerGame.gameId,
+              JSON.stringify(toSpectators),
             );
           }
-          if (player2Id === userId) {
-            playerName = game.player2Name;
-            this.RedisPublisher.publish(
-              player1Id,
-              JSON.stringify({
-                type: GAME_ENDED,
-                reason: "Opponent disconnected",
-              })
-            );
-          }
-
-          const toSpectators = {
-            type: SPECTATE_UPDATE,
-            leaved: true,
-            playerId: userId,
-            playerName
-          };
-          this.RedisPublisher.publish(gameId, JSON.stringify(toSpectators));
-
-          // //if the use was waiting user
-          this.WaitingUserQueue.removeWaitingUser();
-
-          // If the user was spectating, unsubscribe them
-          SpectateGame.getInstance().unsubscribeByInstance(socket);
-
-          this.games.delete(gameId);
         }
+
+        // //if the use was waiting user
+        const isThisUserWaiting = await this.WaitingUserQueue.isThisUserWaiting(
+          deletedUserId as string,
+        );
+        if (isThisUserWaiting) {
+          await this.WaitingUserQueue.removeWaitingUser();
+        }
+        // If the user was spectating, unsubscribe them
+        SpectateGame.getInstance().unsubscribeByInstance(socket);
       });
     } catch (e) {
       console.log(e);
     }
-  }
-
-  addGame(game: Game, player1Id: string, player2Id: string) {
-    this.games.set(game.gameId, { game, player1Id, player2Id });
-  }
-
-  getAllGames() {
-    return Array.from(this.games.values()).map((gameInfo) => {
-      return {
-        gameId: gameInfo.game.gameId,
-      };
-    });
-  }
-
-  removeGame(gameId: string) {
-    this.games.delete(gameId);
   }
 }

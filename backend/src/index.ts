@@ -44,8 +44,9 @@ wss.on("connection", (ws) => {
 
 app.get("/all-games", (req: Request, res: Response) => {
   try {
-    const games = GameManager.getInstance().getAllGames();
-    res.status(200).send(games);
+    //todo : fetcg all games from redis
+    // const games = GameManager.getInstance().getAllGames();
+    // res.status(200).send(games);
   } catch (e) {
     console.log(e);
   }
