@@ -33,11 +33,6 @@ wss.on("connection", (ws) => {
 
   try {
     gameManager.addUser(ws);
-
-    ws.on("close", () => {
-      console.log("A client disconnected");
-      gameManager.deleteUser(null, ws);
-    });
   } catch (e) {
     console.error("Error handling WebSocket connection:", e);
   }
