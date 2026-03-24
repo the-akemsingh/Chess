@@ -48,4 +48,17 @@ export class RedisSubscriber {
       console.error("Error subscribing to Redis:", error);
     }
   }
+  async unSubscribe(socket: WebSocket) {
+    try {
+      for (const [userId, sockets] of this.subscriptions) {
+        sockets.delete(socket);
+        if(sockets.size===0){
+          await this.redisClient.unsubscribe(userId);
+          this.subscriptions.delete(userId);
+        }
+      }
+    } catch (e) {
+      console.error("Error unsubscribing the user");
+    }
+  }
 }

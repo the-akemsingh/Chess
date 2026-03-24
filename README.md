@@ -223,18 +223,6 @@ spectate_update  game_over           game_ended
 ✅  Spectator fan-out — gameId channels broadcast to unlimited spectators
 ✅  Matchmaking across nodes — players on different instances get paired via Redis queue
 ```
-
-### Current limitations
-
-```
-⚠️  Game state is in-process memory (GameManager.games)
-     → /all-games only shows games on the queried instance
-     → If the owning process restarts, game state is lost
-
-To go fully multi-node: move authoritative game state to shared storage
-(Redis Hash / DB / event log) so any node can rehydrate and execute game logic.
-```
-
 ---
 
 ## Run Locally

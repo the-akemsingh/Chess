@@ -29,15 +29,6 @@ export class WaitingUserQueue {
     this.redisClient.connect();
   }
 
-  async isAnyUserWaiting(): Promise<boolean> {
-    try {
-      const result = await this.redisClient.lLen("waitingUser");
-      return result > 0;
-    } catch (e) {
-      console.error("Error checking waiting user:", e);
-      return false;
-    }
-  }
 
   async addWaitingUser(userData: { userId: string; name: string }) {
     try {
@@ -51,7 +42,7 @@ export class WaitingUserQueue {
 
   async getWaitingUser(): Promise<string | null> {
     try {
-      const userData = await this.redisClient.rPop("waitingUser");
+      const userData = await this.redisClient.lPop("waitingUser");
       return userData;
     } catch (e) {
       console.error("Error getting waiting user:", e);

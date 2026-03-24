@@ -3,6 +3,7 @@ import { GameManager } from "./GameManager";
 import express from "express";
 import { Request, Response } from "express";
 import cors from "cors";
+import { RedisGameManager } from "./RedisGameManager";
 
 const app = express();
 const corsOptions = {
@@ -42,11 +43,12 @@ wss.on("connection", (ws) => {
   }
 });
 
-app.get("/all-games", (req: Request, res: Response) => {
+app.get("/all-games", async (req: Request, res: Response) => {
   try {
-    //todo : fetcg all games from redis
-    // const games = GameManager.getInstance().getAllGames();
-    // res.status(200).send(games);
+    const redisGameManager = RedisGameManager.getInstance();
+    const allGames = await redisGameManager.getGame();
+    res.status(200).json({ games: allGames });
+    return;
   } catch (e) {
     console.log(e);
   }

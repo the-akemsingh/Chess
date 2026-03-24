@@ -80,13 +80,10 @@ export class GameManager {
         const message = JSON.parse(data);
 
         if (message.type === INIT_GAME) {
-          const isAnyUserWaiting =
-            await this.WaitingUserQueue.isAnyUserWaiting();
+          const waitingUser = await this.WaitingUserQueue.getWaitingUser();
 
-          if (isAnyUserWaiting) {
-            const waitingUserData = JSON.parse(
-              (await this.WaitingUserQueue.getWaitingUser()) as string,
-            );
+          if (waitingUser) {
+            const waitingUserData = JSON.parse(waitingUser);
 
             const gameState: gameStateType = {
               gameId: uuidv4(),
@@ -216,6 +213,9 @@ export class GameManager {
             );
           }
         }
+
+        //unsubscribe to events this socket had subscribed
+        await this.RedisSubscriber.unSubscribe(socket);
 
         // //if the use was waiting user
         const isThisUserWaiting = await this.WaitingUserQueue.isThisUserWaiting(
