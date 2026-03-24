@@ -1,8 +1,28 @@
 # Chess Backend Architecture
 
-This backend uses **WebSockets + Redis Pub/Sub** to support real-time chess gameplay without sticky sessions.
+This backend uses WebSockets plus Redis to support real-time multiplayer chess and spectators without sticky sessions.
 
-Instead of forcing both players and spectators of a game to stay on the same WebSocket server instance, each backend instance communicates through Redis channels — allowing horizontal scaling while preserving real-time sync.
+Any backend instance can accept a socket connection. Redis is used for matchmaking, shared game state, and message fan-out.
+
+---
+
+## Single Source Of Truth
+
+The authoritative game state is in Redis, not in node-local in-memory `Game` objects.
+
+Each active game is stored in Redis (`activeGames`) as a `gameStateType` object.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `gameId` | string | Unique game identifier |
+| `game` | string | Current board FEN |
+| `player1Id`, `player2Id` | string | Player identities |
+| `player1Name`, `player2Name` | string | Display names |
+| `isPlayer1Connected`, `isPlayer2Connected` | boolean | Live connection flags |
+| `status` | string | `active` / `inactive` / `ended` |
+| `movesCount` | number | Move counter for turn tracking |
+
+Every backend node reads and writes this same Redis state, so all nodes observe one board timeline per game.
 
 ---
 
@@ -10,219 +30,172 @@ Instead of forcing both players and spectators of a game to stay on the same Web
 
 | Approach | Problem |
 |---|---|
-| Sticky Sessions | Traffic for a specific game must always land on the same server. Hard to scale, especially for spectator-heavy games. |
-| Redis Pub/Sub ✅ | Any backend instance can accept any WebSocket connection. Events route through Redis channels to the right users, regardless of which node they're on. |
+| Sticky Sessions | Traffic for a game must always land on one server. This limits flexibility and complicates scaling. |
+| Redis Pub/Sub | Any node can serve clients while Redis routes events to players and spectators. |
 
 ---
 
 ## High-Level Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        CLIENTS                                  │
-│                                                                 │
-│   [Player A]          [Player B]          [Spectator]           │
-│       │                   │                    │                │
-└───────┼───────────────────┼────────────────────┼────────────────┘
-        │ WebSocket         │ WebSocket           │ WebSocket
-        ▼                   ▼                     ▼
-┌───────────────┐  ┌───────────────┐  ┌───────────────────────┐
-│  Backend      │  │  Backend      │  │  Backend              │
-│  Instance 1   │  │  Instance 2   │  │  Instance 3           │
-│               │  │               │  │                       │
-│ GameManager   │  │ GameManager   │  │ GameManager           │
-│ WaitingQueue  │  │ WaitingQueue  │  │ WaitingQueue          │
-│ RedisPublisher│  │ RedisPublisher│  │ RedisPublisher        │
-│ RedisSubscrib.│  │ RedisSubscrib.│  │ RedisSubscrib.        │
-│ Game(chess.js)│  │ SpectateGame  │  │ SpectateGame          │
-└───────┬───────┘  └───────┬───────┘  └──────────┬────────────┘
-        │                  │                      │
-        └──────────────────┴──────────────────────┘
-                                  │
-                    ┌─────────────▼─────────────┐
-                    │                           │
-                    │         R E D I S         │
-                    │                           │
-                    │  Channels:                │
-                    │  • userId:{id}  (private) │
-                    │  • gameId:{id}  (public)  │
-                    │  • waitingUser  (queue)   │
-                    │                           │
-                    └───────────────────────────┘
+```mermaid
+flowchart LR
+        PA[Player A] --> B1[Backend Node]
+        PB[Player B] --> B2[Backend Node]
+        SP[Spectator] --> B3[Backend Node]
+
+        B1 <--> R[(Redis)]
+        B2 <--> R
+        B3 <--> R
+
+        R --- Q[waitingUser queue]
+        R --- G[activeGames state]
+        R --- C[userId and gameId channels]
 ```
 
 ---
 
 ## Core Components
 
-```
-src/
-├── index.ts           →  HTTP server (/all-games) + WebSocket server entry point
-├── GameManager.ts     →  Main orchestrator: routes INIT_GAME, MOVE, SPECTATE events
-├── WaitingUserQueue.ts→  Redis-backed matchmaking queue (LPUSH / RPOP)
-├── RedisPublisher.ts  →  Publishes events to userId / gameId channels
-├── RedisSubscriber.ts →  Subscribes sockets to userId channels; handles PLAYER_MATCHED
-├── Game.ts            →  Owns chess.js instance, validates moves, publishes game events
-├── Spectate.ts        →  Subscribes spectators to gameId channels; fans out updates
-└── Messages.ts        →  Shared message type constants
-```
+| File | Responsibility | State ownership |
+|---|---|---|
+| `backend/src/index.ts` | HTTP + WebSocket entrypoint | None |
+| `backend/src/GameManager.ts` | Handles `init_game`, `move`, `spectate`, disconnect flow | User socket map only |
+| `backend/src/WaitingUserQueue.ts` | Matchmaking queue operations | Redis `waitingUser` |
+| `backend/src/RedisGameManager.ts` | Game state reads and writes | Redis `activeGames` |
+| `backend/src/MakeMove.ts` | Move validation and state transition | Reads/writes Redis game state |
+| `backend/src/RedisPublisher.ts` | Publishes direct and broadcast events | Redis pub/sub |
+| `backend/src/RedisSubscriber.ts` | Subscribes user channels and forwards to sockets | Local subscription map |
+| `backend/src/Spectate.ts` | Spectator subscriptions per game channel | Local spectator map |
+| `backend/src/utils/Messages.ts` | Message constants and `gameStateType` | Shared types |
 
 ---
 
-## Redis Channel Design
+## Redis Data Model
 
-```
-┌────────────────────────────────────────────────────┐
-│                   Redis Channels                   │
-│                                                    │
-│  userId:{playerA}  ──►  private, direct messages   │
-│       Events: PLAYER_MATCHED, INIT_GAME,           │
-│               MOVE, GAME_OVER                      │
-│                                                    │
-│  userId:{playerB}  ──►  private, direct messages   │
-│                                                    │
-│  gameId:{game1}    ──►  public broadcast channel   │
-│       Events: SPECTATE_UPDATE                      │
-│       Consumers: all spectators of this game       │
-│                                                    │
-│  waitingUser       ──►  Redis list (matchmaking)   │
-│       LPUSH when player waits                      │
-│       RPOP when opponent arrives                   │
-└────────────────────────────────────────────────────┘
+| Redis key/channel | Type | Producer | Consumer | Purpose |
+|---|---|---|---|---|
+| `waitingUser` | List | `WaitingUserQueue.addWaitingUser` | `WaitingUserQueue.getWaitingUser` | Matchmaking queue |
+| `activeGames` | List | `GameManager`, `MakeMove` | `GameManager`, `/all-games` | Authoritative game state |
+| `<userId>` | Pub/Sub channel | `RedisPublisher` | `RedisSubscriber` | Direct player messages |
+| `<gameId>` | Pub/Sub channel | `RedisPublisher` | `SpectateGame` | Spectator updates |
+
+```mermaid
+flowchart TB
+    Q[waitingUser list] -->|lPop on init_game| M[Matchmaking]
+    M -->|lPush new gameState| A[activeGames list]
+    A -->|getGame by gameId| MV[Move validation]
+    MV -->|lSet updated state| A
 ```
 
 ---
 
 ## End-to-End Flows
 
-### 1. Matchmaking Flow
+### 1) Matchmaking
 
 ```mermaid
 sequenceDiagram
-    autonumber
-    participant P1 as Player 1 (Node A)
-    participant R  as Redis
-    participant P2 as Player 2 (Node B)
+        autonumber
+        participant P1 as Player 1
+        participant N1 as Node A
+        participant R as Redis
+        participant P2 as Player 2
+        participant N2 as Node B
 
-    P1->>R: INIT_GAME → check waitingUser queue
-    Note over R: Queue is empty
-    P1->>R: LPUSH waitingUser {userId, name}
-    P1->>R: SUBSCRIBE userId(P1)
+        P1->>N1: init_game
+        N1->>R: lPop(waitingUser)
+        R-->>N1: null
+        N1->>R: lPush(waitingUser, P1)
+        N1->>R: subscribe userId(P1)
 
-    P2->>R: INIT_GAME → check waitingUser queue
-    R-->>P2: RPOP → returns P1 data
-    P2->>R: PUBLISH userId(P1): PLAYER_MATCHED
-    P2->>R: SUBSCRIBE userId(P2)
+        P2->>N2: init_game
+        N2->>R: lPop(waitingUser)
+        R-->>N2: P1 payload
+        N2->>R: lPush(activeGames, initial gameState)
+        N2->>R: subscribe userId(P2)
+        N2->>R: publish init_game to P1 and P2
+```
 
-    R-->>P1: PLAYER_MATCHED event received
-    P1->>P1: Create Game(player1=P1, player2=P2)
-    P1->>R: PUBLISH INIT_GAME → userId(P1)
-    P1->>R: PUBLISH INIT_GAME → userId(P2)
-    R-->>P1: INIT_GAME ✓
-    R-->>P2: INIT_GAME ✓
+### 2) Move Processing (Redis-backed)
+
+```mermaid
+sequenceDiagram
+        autonumber
+        participant P as Active Player
+        participant N as Backend Node
+        participant R as Redis
+        participant M as MakeMove(chess.js)
+        participant O as Opponent
+        participant S as Spectators
+
+        P->>N: move(gameId, from, to)
+        N->>R: get gameState by gameId
+        R-->>N: current gameState (FEN, movesCount, players)
+        N->>M: makeMove(playerId, move, gameState)
+        M->>M: validate turn and legal move
+        M->>R: lSet(activeGames, updated state)
+        M->>R: publish move to opponent channel
+        M->>R: publish spectate_update to gameId channel
+        R-->>O: move
+        R-->>S: spectate_update
+```
+
+### 3) Spectator Updates
+
+```mermaid
+sequenceDiagram
+        autonumber
+        participant C as Spectator Client
+        participant N as Backend Node
+        participant SG as SpectateGame
+        participant R as Redis
+
+        C->>N: spectate(gameId)
+        N->>SG: subscribe(gameId, socket)
+        SG->>R: subscribe gameId (first local spectator only)
+        R-->>SG: spectate_update
+        SG-->>C: ws.send(update)
 ```
 
 ---
 
-### 2. Move Propagation Flow
+## API Surface
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant PX as Active Player
-    participant G  as Game (chess.js)
-    participant R  as Redis
-    participant OP as Opponent
-    participant SP as Spectators
+### HTTP
 
-    PX->>G: MOVE(gameId, from, to)
-    G->>G: Validate turn + legality
+| Method | Route | Source of truth | Response |
+|---|---|---|---|
+| GET | `/all-games` | Redis `activeGames` | Active games list |
 
-    alt Valid move, game continues
-        G->>R: PUBLISH MOVE → userId(opponent)
-        G->>R: PUBLISH SPECTATE_UPDATE → gameId
-        R-->>OP: MOVE (new board state)
-        R-->>SP: SPECTATE_UPDATE (board FEN)
-    else Game over
-        G->>R: PUBLISH GAME_OVER → userId(P1) + userId(P2)
-        G->>R: PUBLISH SPECTATE_UPDATE(winner) → gameId
-        R-->>OP: GAME_OVER
-        R-->>SP: SPECTATE_UPDATE (final state + winner)
-    end
-```
+### WebSocket Messages
 
----
-
-### 3. Spectator Subscription Flow
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant S  as Spectator
-    participant B  as Backend Node
-    participant SG as SpectateGame
-    participant R  as Redis
-
-    S->>B: SPECTATE(gameId)
-    B->>SG: subscribe(gameId, socket)
-    Note over SG,R: Only subscribes to Redis on first spectator
-    SG->>R: SUBSCRIBE gameId
-
-    loop Every game update
-        R-->>SG: SPECTATE_UPDATE published on gameId
-        SG-->>S: Forward update via ws.send()
-    end
-```
-
----
-
-## Message Types
-
-| Message | Direction | Description |
+| Direction | Type | Purpose |
 |---|---|---|
-| `INIT_GAME` | Server → Client | Game initialized, sends color + opponent info |
-| `MOVE` | Client → Server | Player submits a move |
-| `MOVE` | Server → Client | Opponent's move delivered |
-| `GAME_OVER` | Server → Client | Game ended with result |
-| `SPECTATE` | Client → Server | Request to spectate a game |
-| `SPECTATE_UPDATE` | Server → Spectators | Board state broadcast after each move |
-| `GAME_ENDED` | Server → Client | Game cleanup notification |
-| `PLAYER_MATCHED` | Redis internal | Matchmaking signal between backend nodes |
+| Client -> Server | `init_game` | Join matchmaking |
+| Client -> Server | `move` | Submit move |
+| Client -> Server | `spectate` | Subscribe to game updates |
+| Server -> Client | `init_game` | Assign color and game metadata |
+| Server -> Client | `move` | Opponent move |
+| Server -> Client | `spectate_update` | Board update for spectators |
+| Server -> Client | `game_over` | End state and winner |
+| Server -> Client | `game_ended` | Disconnect-based termination event |
 
 ---
 
-## API & WebSocket Surface
+## Scalability Notes
 
-**HTTP**
-```
-GET /all-games   →  Returns active game IDs from in-memory GameManager state
-```
+| Capability | Current status |
+|---|---|
+| Single source of game state | Implemented via Redis `activeGames` |
+| Cluster-wide game discovery | Implemented via `/all-games` reading Redis |
+| Cross-node matchmaking | Implemented via `waitingUser` list |
+| Spectator fan-out | Implemented via `gameId` pub/sub channels |
+| Long-running channel cleanup | Implemented with unsubscribe on socket close |
 
-**WebSocket Inbound**
-```
-init_game   { name }
-move        { gameId, from, to }
-spectate    { gameId }
-```
+### Current tradeoff
 
-**WebSocket Outbound** *(via Redis fan-out)*
-```
-init_game        player_matched      move
-spectate_update  game_over           game_ended
-```
+Move updates currently follow read -> compute -> write on Redis list entries. For high contention on one game, a stronger atomic update approach (Lua script or optimistic locking) is recommended.
 
----
-
-## Scalability
-
-### What this architecture gives you
-
-```
-✅  Decoupled event routing — no single backend bottleneck
-✅  Horizontal scaling — add backend instances freely, no sticky affinity needed
-✅  Spectator fan-out — gameId channels broadcast to unlimited spectators
-✅  Matchmaking across nodes — players on different instances get paired via Redis queue
-```
 ---
 
 ## Run Locally
@@ -230,14 +203,13 @@ spectate_update  game_over           game_ended
 ```bash
 # 1. Configure environment
 cp .env.example .env
-# Fill in Redis credentials in .env
 
 # 2. Install dependencies
 npm install
 
-# 3. Build and start
+# 3. Build and run
 npm run build
 node dist/index.js
 ```
 
-Server starts on `http://localhost:3000`. WebSocket upgrades are served on the same port.
+Server runs on `http://localhost:3000` and WebSocket upgrades use the same port.
