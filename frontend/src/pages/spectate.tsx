@@ -12,13 +12,22 @@ import { BackgroundBeams } from "../components/ui/background-beams";
 export const SPECTATE = "spectate";
 export const SPECTATE_UPDATE = "spectate_update";
 
-interface game {
+interface gameStateType {
   gameId: string;
-}
+  game: string;
+  player1Id: string;
+  player2Id: string;
+  player1Name: string;
+  player2Name: string;
+  isPlayer1Connected: boolean;
+  isPlayer2Connected: boolean;
+  status: string;
+  movesCount: number;
+};
 
 export default function Spectate() {
   const socket = useSocket();
-  const [games, setGames] = useState<game[]>([]);
+  const [games, setGames] = useState<gameStateType[]>([]);
   const [isStarted, setStarted] = useState<boolean>(false);
   const [player1, setPlayer1] = useState<string | null>(null);
   const [player2, setPlayer2] = useState<string | null>(null);
@@ -124,6 +133,7 @@ export default function Spectate() {
                   className="bg-white p-5 rounded-lg shadow-lg border border-black"
                 >
                   <p className="text-lg font-semibold">Game ID: {game.gameId}</p>
+                  <p className="text-lg font-semibold">{game.player1Name} vs {game.player2Name} </p>
                   <button
                     onClick={() => spectateMatch(game.gameId)}
                     className="mt-3 px-5 py-2 rounded-md border border-black bg-white text-black text-sm hover:shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition duration-200"
