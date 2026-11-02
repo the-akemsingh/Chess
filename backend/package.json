@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "node init && tsc -b",
+    "build": "tsc -b",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node init && tsc -b && node dist/index.js",
+    "dev": "tsc -b && node dist/index.js",
     "db:generate": "npx prisma generate"
   },
   "keywords": [],
